@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check Splitter</title>
+<style>
+
+  :root {
+    --paper: #F4F1EA;
+    --ink: #1C1A17;
+    --stamp: #C2452D;
+    --muted: #8A8175;
+    --hairline: #DDD6C8;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+    display: flex;
+    justify-content: center;
+    padding: 48px 16px 96px;
+    min-height: 100vh;
+  }
+
+  .receipt {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .num {
+    font-family: ui-monospace, Menlo, Consolas, 'Courier New', monospace;
+  }
+
+  .label {
+    font-variant: small-caps;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    font-weight: normal;
+  }
+
+  header .sub {
+    margin-top: 6px;
+    font-variant: small-caps;
+    letter-spacing: 0.16em;
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  .tear {
+    border: none;
+    border-top: 1px dashed var(--hairline);
+    margin: 22px 0;
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+
+  .field .label {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .amount-field {
+    display: flex;
+    align-items: baseline;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 4px;
+  }
+
+  .amount-field .prefix {
+    font-family: ui-monospace, Menlo, Consolas, 'Courier New', monospace;
+    font-size: 1.1rem;
+    margin-right: 4px;
+    color: var(--ink);
+  }
+
+  input[type="number"],
+  input[type="text"] {
+    font-family: ui-monospace, Menlo, Consolas, 'Courier New', monospace;
+    font-size: 1.1rem;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    width: 100%;
+    padding: 2px 0;
+  }
+
+  input[type="number"]:focus,
+  input[type="text"]:focus {
+    outline: none;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  .people-field .amount-field {
+    justify-content: flex-end;
+  }
+
+  .people-field input {
+    text-align: right;
+    width: 60px;
+    flex: none;
+  }
+
+  .tip-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .tip-btn {
+    font-family: ui-monospace, Menlo, Consolas, 'Courier New', monospace;
+    font-size: 0.95rem;
+    padding: 10px 0;
+    background: transparent;
+    border: 1px solid var(--hairline);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .tip-btn.active {
+    background: var(--stamp);
+    border-color: var(--stamp);
+    color: var(--paper);
+  }
+
+  .custom-tip {
+    margin-top: 10px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 4px;
+  }
+
+  .custom-tip .label {
+    margin: 0;
+    flex: none;
+  }
+
+  .custom-tip .suffix {
+    font-family: ui-monospace, Menlo, Consolas, 'Courier New', monospace;
+    font-size: 1.05rem;
+  }
+
+  .custom-tip input {
+    text-align: right;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+  }
+
+  .summary-row .label {
+    margin: 0;
+  }
+
+  .summary-row .value {
+    font-size: 1.05rem;
+  }
+
+  .summary-row.total .value {
+    color: var(--stamp);
+  }
+
+  .per-person-block {
+    text-align: center;
+    margin: 24px 0 6px;
+  }
+
+  .per-person-block .label {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .per-person-block .value {
+    font-family: ui-monospace, Menlo, Consolas, 'Courier New', monospace;
+    font-size: 3rem;
+    color: var(--stamp);
+    line-height: 1;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-row .label {
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .toggle-box {
+    font-family: ui-monospace, Menlo, Consolas, 'Courier New', monospace;
+    font-size: 1rem;
+    color: var(--muted);
+    border: 1px solid var(--hairline);
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+
+  .toggle-row.on .toggle-box {
+    color: var(--stamp);
+    border-color: var(--stamp);
+  }
+
+  .toggle-row input {
+    display: none;
+  }
+
+  #personRows {
+    display: none;
+    margin-top: 16px;
+  }
+
+  #personRows.show {
+    display: block;
+  }
+
+  .person-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 90px;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 0;
+    border-top: 1px dashed var(--hairline);
+  }
+
+  .person-row:first-child {
+    border-top: none;
+  }
+
+  .person-row .person-name {
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    font-size: 0.9rem;
+  }
+
+  .person-row .extra-field {
+    display: flex;
+    align-items: baseline;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .person-row .extra-field .prefix {
+    font-family: ui-monospace, Menlo, Consolas, 'Courier New', monospace;
+    font-size: 0.9rem;
+  }
+
+  .person-row .extra-field input {
+    font-size: 0.9rem;
+    text-align: right;
+  }
+
+  .person-row .final-amount {
+    text-align: right;
+    font-size: 1.05rem;
+  }
+
+  #roundBlock {
+    display: none;
+  }
+
+  #roundBlock.show {
+    display: block;
+  }
+
+  .copy-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 14px 0;
+    background: transparent;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    font-family: Georgia, 'Iowan Old Style', serif;
+    font-variant: small-caps;
+    letter-spacing: 0.12em;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  .copy-btn:active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .copy-status {
+    text-align: center;
+    margin-top: 10px;
+    font-variant: small-caps;
+    letter-spacing: 0.1em;
+    font-size: 0.82rem;
+    color: var(--stamp);
+    min-height: 1.2em;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .copy-status.show {
+    opacity: 1;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 28px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    font-variant: small-caps;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="receipt">
+
+  <header>
+    <h1>Check Splitter</h1>
+    <div class="sub">Table for however many</div>
+  </header>
+
+  <div class="field">
+    <label class="label" for="bill">Bill Total</label>
+    <div class="amount-field">
+      <span class="prefix">$</span>
+      <input type="number" id="bill" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+    </div>
+  </div>
+
+  <div class="field people-field row">
+    <label class="label" for="people" style="align-self:center;">Split Between</label>
+    <div class="amount-field" style="border-bottom:1px solid var(--hairline); width:auto;">
+      <input type="number" id="people" value="2" min="1" step="1">
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">Tip Percentage</label>
+    <div class="tip-buttons" id="tipButtons">
+      <button type="button" class="tip-btn" data-tip="15">15%</button>
+      <button type="button" class="tip-btn active" data-tip="18">18%</button>
+      <button type="button" class="tip-btn" data-tip="20">20%</button>
+      <button type="button" class="tip-btn" data-tip="25">25%</button>
+    </div>
+    <div class="custom-tip">
+      <span class="label">Custom</span>
+      <input type="number" id="customTip" placeholder="0" min="0" step="1">
+      <span class="suffix">%</span>
+    </div>
+  </div>
+
+  <hr class="tear">
+
+  <div class="summary-row">
+    <span class="label">Tip Amount</span>
+    <span class="value num" id="tipAmount">$0.00</span>
+  </div>
+  <div class="summary-row total">
+    <span class="label">Grand Total</span>
+    <span class="value num" id="grandTotal">$0.00</span>
+  </div>
+
+  <div class="per-person-block" id="perPersonBlock">
+    <span class="label">Per Person</span>
+    <span class="value" id="perPerson">$0.00</span>
+  </div>
+
+  <div id="roundBlock">
+    <div class="summary-row">
+      <span class="label">Extra Tip (Rounding)</span>
+      <span class="value num" id="roundSurplus">$0.00</span>
+    </div>
+  </div>
+
+  <hr class="tear">
+
+  <div class="toggle-row" id="unevenToggleRow">
+    <span class="label">Uneven Split</span>
+    <span class="toggle-box" id="unevenBox">&nbsp;</span>
+    <input type="checkbox" id="unevenToggle">
+  </div>
+
+  <div id="personRows"></div>
+
+  <hr class="tear">
+
+  <div class="toggle-row" id="roundToggleRow">
+    <span class="label">Round Up To Whole Dollar</span>
+    <span class="toggle-box" id="roundBox">&nbsp;</span>
+    <input type="checkbox" id="roundToggle">
+  </div>
+
+  <hr class="tear">
+
+  <button type="button" class="copy-btn" id="copyBtn">Copy For Group Chat</button>
+  <div class="copy-status" id="copyStatus">&nbsp;</div>
+
+  <footer>Thank you for splitting evenly</footer>
+
+</div>
+
+<script>
+  var billInput = document.getElementById('bill');
+  var peopleInput = document.getElementById('people');
+  var customTipInput = document.getElementById('customTip');
+  var tipButtons = document.querySelectorAll('.tip-btn');
+
+  var unevenToggle = document.getElementById('unevenToggle');
+  var unevenToggleRow = document.getElementById('unevenToggleRow');
+  var unevenBox = document.getElementById('unevenBox');
+  var personRows = document.getElementById('personRows');
+  var perPersonBlock = document.getElementById('perPersonBlock');
+
+  var roundToggle = document.getElementById('roundToggle');
+  var roundToggleRow = document.getElementById('roundToggleRow');
+  var roundBox = document.getElementById('roundBox');
+  var roundBlock = document.getElementById('roundBlock');
+
+  var tipAmountEl = document.getElementById('tipAmount');
+  var grandTotalEl = document.getElementById('grandTotal');
+  var perPersonEl = document.getElementById('perPerson');
+  var roundSurplusEl = document.getElementById('roundSurplus');
+
+  var copyBtn = document.getElementById('copyBtn');
+  var copyStatus = document.getElementById('copyStatus');
+
+  var selectedTip = 18;
+  var extras = [];
+
+  function money(n) {
+    if (!isFinite(n)) n = 0;
+    var sign = n < 0 ? '-' : '';
+    return sign + '$' + Math.abs(n).toFixed(2);
+  }
+
+  function getPeopleCount() {
+    var n = parseInt(peopleInput.value, 10);
+    if (isNaN(n) || n < 1) n = 1;
+    return n;
+  }
+
+  function setActiveTipButton(percent) {
+    tipButtons.forEach(function (btn) {
+      btn.classList.toggle('active', parseFloat(btn.dataset.tip) === percent);
+    });
+  }
+
+  function buildPersonRows(count) {
+    while (extras.length < count) extras.push(0);
+    extras.length = count;
+
+    personRows.innerHTML = '';
+    for (var i = 0; i < count; i++) {
+      var row = document.createElement('div');
+      row.className = 'person-row';
+
+      var name = document.createElement('span');
+      name.className = 'person-name';
+      name.textContent = 'Person ' + (i + 1);
+
+      var extraField = document.createElement('div');
+      extraField.className = 'extra-field';
+      var prefix = document.createElement('span');
+      prefix.className = 'prefix';
+      prefix.textContent = '$';
+      var extraInput = document.createElement('input');
+      extraInput.type = 'number';
+      extraInput.min = '0';
+      extraInput.step = '0.01';
+      extraInput.placeholder = '0.00';
+      extraInput.dataset.index = i;
+      extraInput.value = extras[i] ? extras[i] : '';
+      extraInput.addEventListener('input', function (e) {
+        var idx = parseInt(e.target.dataset.index, 10);
+        var v = parseFloat(e.target.value);
+        extras[idx] = isNaN(v) ? 0 : v;
+        calculate();
+      });
+      extraField.appendChild(prefix);
+      extraField.appendChild(extraInput);
+
+      var finalAmt = document.createElement('span');
+      finalAmt.className = 'final-amount num';
+      finalAmt.id = 'final-' + i;
+      finalAmt.textContent = '$0.00';
+
+      row.appendChild(name);
+      row.appendChild(extraField);
+      row.appendChild(finalAmt);
+      personRows.appendChild(row);
+    }
+  }
+
+  function calculate() {
+    var bill = parseFloat(billInput.value);
+    if (isNaN(bill) || bill < 0) bill = 0;
+
+    var count = getPeopleCount();
+    var pct = isNaN(selectedTip) ? 0 : selectedTip;
+
+    var tip = bill * (pct / 100);
+    var totalPool = bill + tip;
+
+    var finals = [];
+
+    if (unevenToggle.checked) {
+      if (extras.length !== count) buildPersonRows(count);
+      var sumExtras = 0;
+      for (var i = 0; i < count; i++) sumExtras += (extras[i] || 0);
+      var remainder = totalPool - sumExtras;
+      var baseShare = remainder / count;
+      for (var i = 0; i < count; i++) {
+        finals.push(baseShare + (extras[i] || 0));
+      }
+    } else {
+      var equalShare = totalPool / count;
+      for (var i = 0; i < count; i++) finals.push(equalShare);
+    }
+
+    var displayFinals = finals.slice();
+    var roundSurplus = 0;
+
+    if (roundToggle.checked) {
+      var roundedSum = 0;
+      for (var i = 0; i < displayFinals.length; i++) {
+        var rounded = Math.ceil(displayFinals[i] - 0.0001);
+        roundedSum += rounded;
+        displayFinals[i] = rounded;
+      }
+      roundSurplus = roundedSum - totalPool;
+    }
+
+    tipAmountEl.textContent = money(tip);
+    grandTotalEl.textContent = money(totalPool);
+
+    if (unevenToggle.checked) {
+      for (var i = 0; i < count; i++) {
+        var el = document.getElementById('final-' + i);
+        if (el) el.textContent = money(displayFinals[i]);
+      }
+    } else {
+      perPersonEl.textContent = money(displayFinals[0]);
+    }
+
+    roundSurplusEl.textContent = money(roundSurplus);
+
+    window._lastCalc = {
+      bill: bill,
+      pct: pct,
+      tip: tip,
+      totalPool: totalPool,
+      count: count,
+      finals: displayFinals,
+      roundOn: roundToggle.checked,
+      roundSurplus: roundSurplus,
+      unevenOn: unevenToggle.checked
+    };
+  }
+
+  tipButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      selectedTip = parseFloat(btn.dataset.tip);
+      customTipInput.value = '';
+      setActiveTipButton(selectedTip);
+      calculate();
+    });
+  });
+
+  customTipInput.addEventListener('input', function () {
+    var val = parseFloat(customTipInput.value);
+    if (!isNaN(val) && customTipInput.value !== '') {
+      selectedTip = val;
+    } else {
+      selectedTip = 0;
+    }
+    setActiveTipButton(NaN);
+    calculate();
+  });
+
+  billInput.addEventListener('input', calculate);
+
+  peopleInput.addEventListener('input', function () {
+    var count = getPeopleCount();
+    if (unevenToggle.checked) buildPersonRows(count);
+    calculate();
+  });
+
+  unevenToggle.addEventListener('change', function () {
+    var on = unevenToggle.checked;
+    unevenToggleRow.classList.toggle('on', on);
+    unevenBox.textContent = on ? 'X' : ' ';
+    personRows.classList.toggle('show', on);
+    perPersonBlock.style.display = on ? 'none' : 'block';
+    if (on) buildPersonRows(getPeopleCount());
+    calculate();
+  });
+  unevenToggleRow.addEventListener('click', function (e) {
+    if (e.target === unevenToggle) return;
+    unevenToggle.checked = !unevenToggle.checked;
+    unevenToggle.dispatchEvent(new Event('change'));
+  });
+
+  roundToggle.addEventListener('change', function () {
+    var on = roundToggle.checked;
+    roundToggleRow.classList.toggle('on', on);
+    roundBox.textContent = on ? 'X' : ' ';
+    roundBlock.classList.toggle('show', on);
+    calculate();
+  });
+  roundToggleRow.addEventListener('click', function (e) {
+    if (e.target === roundToggle) return;
+    roundToggle.checked = !roundToggle.checked;
+    roundToggle.dispatchEvent(new Event('change'));
+  });
+
+  function buildSummaryText() {
+    var d = window._lastCalc;
+    if (!d) return '';
+    var lines = [];
+    lines.push('Bill: ' + money(d.bill));
+    lines.push('Tip (' + d.pct + '%): ' + money(d.tip));
+    lines.push('Total: ' + money(d.totalPool));
+    lines.push('');
+    for (var i = 0; i < d.count; i++) {
+      lines.push('Person ' + (i + 1) + ': ' + money(d.finals[i]));
+    }
+    if (d.roundOn) {
+      lines.push('');
+      lines.push('(Rounded up — extra tip: ' + money(d.roundSurplus) + ')');
+    }
+    return lines.join('\n');
+  }
+
+  function showCopyStatus(text) {
+    copyStatus.textContent = text;
+    copyStatus.classList.add('show');
+    clearTimeout(showCopyStatus._t);
+    showCopyStatus._t = setTimeout(function () {
+      copyStatus.classList.remove('show');
+    }, 2200);
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    var ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch (e) {
+      ok = false;
+    }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  copyBtn.addEventListener('click', function () {
+    var text = buildSummaryText();
+    if (!text) return;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        showCopyStatus('Copied to clipboard');
+      }, function () {
+        var ok = fallbackCopy(text);
+        showCopyStatus(ok ? 'Copied to clipboard' : 'Copy failed — select manually');
+      });
+    } else {
+      var ok = fallbackCopy(text);
+      showCopyStatus(ok ? 'Copied to clipboard' : 'Copy failed — select manually');
+    }
+  });
+
+  buildPersonRows(getPeopleCount());
+  calculate();
+</script>
+
+</body>
+</html>
