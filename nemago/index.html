@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NemaGo — Roadside Help, Simplified</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface-muted: #eef1f8;
+    --border: #e1e6f0;
+    --text: #1b2233;
+    --text-muted: #667088;
+    --primary: #2a5bff;
+    --primary-dark: #1c3fc7;
+    --primary-soft: #e8edff;
+    --accent: #ff7a45;
+    --success: #1fa971;
+    --success-soft: #e5f7ef;
+    --shadow: 0 10px 30px rgba(24, 34, 65, 0.08);
+    --radius-lg: 22px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Header ---------- */
+
+  header.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 10px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+  }
+
+  .brand .logo-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 6px 14px rgba(42, 91, 255, 0.35);
+  }
+
+  .brand small {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .sim-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--primary-dark);
+    background: var(--primary-soft);
+    padding: 5px 9px;
+    border-radius: 999px;
+    text-transform: uppercase;
+  }
+
+  /* ---------- Step progress ---------- */
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    padding: 4px 20px 18px;
+    gap: 6px;
+  }
+
+  .stepper .seg {
+    flex: 1;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .stepper .seg .fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: width 0.5s ease;
+  }
+
+  .stepper .seg.done .fill { width: 100%; }
+  .stepper .seg.active .fill { width: 100%; }
+
+  .step-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .step-labels span.current { color: var(--primary-dark); }
+
+  /* ---------- Main / cards ---------- */
+
+  main {
+    flex: 1;
+    padding: 6px 20px 40px;
+  }
+
+  .screen { display: none; animation: fadeIn 0.35s ease; }
+  .screen.visible { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  h1.title {
+    font-size: 22px;
+    margin: 4px 0 4px;
+    letter-spacing: -0.01em;
+  }
+
+  p.subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0 0 18px;
+    line-height: 1.5;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  /* ---------- Step 1: symptom grid ---------- */
+
+  .symptom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .symptom-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+
+  .symptom-card:hover { border-color: var(--primary); transform: translateY(-1px); }
+
+  .symptom-card.selected {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    box-shadow: 0 0 0 3px rgba(42, 91, 255, 0.12);
+  }
+
+  .symptom-card .emoji { font-size: 26px; display: block; margin-bottom: 6px; }
+  .symptom-card .label { font-size: 12.5px; font-weight: 700; line-height: 1.25; }
+
+  .upload-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface-muted);
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+
+  .upload-row label.upload-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .upload-row input[type=file] { display: none; }
+
+  .upload-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    overflow: hidden;
+  }
+
+  .upload-preview img {
+    width: 34px; height: 34px; object-fit: cover; border-radius: 8px; flex-shrink: 0;
+  }
+
+  .upload-preview .fname {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ---------- Buttons ---------- */
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 999px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s ease, opacity 0.15s ease;
+  }
+
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(42, 91, 255, 0.3);
+  }
+
+  .btn-primary:disabled {
+    background: var(--border);
+    color: var(--text-muted);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 10px;
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-row { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
+  /* ---------- Loading / spinner ---------- */
+
+  .loading-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 34px 10px;
+    text-align: center;
+  }
+
+  .spinner {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 4px solid var(--primary-soft);
+    border-top-color: var(--primary);
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-block .status-text {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    min-height: 18px;
+  }
+
+  /* ---------- Diagnostic result ---------- */
+
+  .result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--success-soft);
+    color: var(--success);
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+
+  .result-symptom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .result-symptom .emoji {
+    font-size: 28px;
+    background: var(--surface-muted);
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .result-symptom .name { font-weight: 800; font-size: 15.5px; }
+  .result-symptom .sub { font-size: 12px; color: var(--text-muted); }
+
+  .diagnostic-text {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--surface-muted);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+  }
+
+  .disclaimer {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  /* ---------- Step 2: pricing ---------- */
+
+  .price-hero {
+    text-align: center;
+    padding: 10px 0 18px;
+  }
+
+  .price-hero .amount {
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .price-hero .amount .cents { font-size: 20px; font-weight: 700; color: var(--text-muted); }
+
+  .price-hero .guarantee {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--success);
+    background: var(--success-soft);
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+
+  .line-items { list-style: none; margin: 0; padding: 0; }
+
+  .line-items li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13.5px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .line-items li:last-child { border-bottom: none; }
+  .line-items li span:first-child { color: var(--text-muted); }
+  .line-items li span:last-child { font-weight: 700; }
+
+  .line-items li.total span { font-weight: 800; color: var(--text); font-size: 14.5px; }
+
+  /* ---------- Step 3: matchmaking ---------- */
+
+  .radar-wrap {
+    width: 130px; height: 130px;
+    margin: 6px auto 18px;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .radar-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    opacity: 0;
+    animation: radar-pulse 2.4s ease-out infinite;
+  }
+
+  .radar-ring:nth-child(2) { animation-delay: 0.8s; }
+  .radar-ring:nth-child(3) { animation-delay: 1.6s; }
+
+  @keyframes radar-pulse {
+    0% { width: 20px; height: 20px; opacity: 0.6; }
+    100% { width: 130px; height: 130px; opacity: 0; }
+  }
+
+  .radar-center {
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 8px 18px rgba(42, 91, 255, 0.35);
+    z-index: 1;
+  }
+
+  .tech-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .tech-avatar {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    background: var(--surface-muted);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .tech-info { flex: 1; min-width: 0; }
+  .tech-info .name { font-weight: 800; font-size: 16px; }
+  .tech-info .meta { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+  .tech-info .stars { color: #f5a623; font-size: 13px; margin-top: 3px; }
+
+  .tech-eta {
+    text-align: center;
+    background: var(--primary-soft);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    flex-shrink: 0;
+  }
+
+  .tech-eta .num { font-size: 18px; font-weight: 800; color: var(--primary-dark); line-height: 1; }
+  .tech-eta .unit { font-size: 10px; font-weight: 700; color: var(--primary-dark); text-transform: uppercase; }
+
+  /* ---------- Step 4: map ---------- */
+
+  .map-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background:
+      linear-gradient(0deg, transparent 24%, rgba(42,91,255,0.06) 25%, rgba(42,91,255,0.06) 26%, transparent 27%, transparent 74%, rgba(42,91,255,0.06) 75%, rgba(42,91,255,0.06) 76%, transparent 77%, transparent),
+      linear-gradient(90deg, transparent 24%, rgba(42,91,255,0.06) 25%, rgba(42,91,255,0.06) 26%, transparent 27%, transparent 74%, rgba(42,91,255,0.06) 75%, rgba(42,91,255,0.06) 76%, transparent 77%, transparent),
+      #eef2fb;
+    background-size: 40px 40px, 40px 40px, cover;
+    margin-bottom: 16px;
+  }
+
+  .map-wrap svg { width: 100%; height: 100%; display: block; }
+
+  .map-pin {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    font-size: 26px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25));
+  }
+
+  .map-tech-icon {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-size: 22px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    transition: left 0.15s linear, top 0.15s linear;
+  }
+
+  .eta-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .eta-panel .eta-text { font-size: 13.5px; font-weight: 700; }
+  .eta-panel .eta-count { font-size: 13.5px; font-weight: 800; color: var(--primary-dark); }
+
+  .progress-track {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--border);
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 999px;
+    transition: width 0.15s linear;
+  }
+
+  .arrived-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--success-soft);
+    color: var(--success);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .arrived-banner.visible { display: flex; }
+
+  footer.foot-note {
+    text-align: center;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    padding: 6px 20px 26px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-mark">🔧</div>
+      <div>
+        NemaGo
+        <small>Roadside help, simplified</small>
+      </div>
+    </div>
+    <div class="sim-tag">Simulated demo</div>
+  </header>
+
+  <div class="stepper" id="stepper">
+    <div class="seg" data-seg="1"><div class="fill"></div></div>
+    <div class="seg" data-seg="2"><div class="fill"></div></div>
+    <div class="seg" data-seg="3"><div class="fill"></div></div>
+    <div class="seg" data-seg="4"><div class="fill"></div></div>
+  </div>
+  <div class="step-labels" id="stepLabels">
+    <span>Diagnose</span>
+    <span>Price</span>
+    <span>Match</span>
+    <span>Track</span>
+  </div>
+
+  <main>
+
+    <!-- STEP 1 -->
+    <section class="screen" id="screen-1">
+      <h1 class="title">What's going on with your car?</h1>
+      <p class="subtitle">Snap or pick a photo of the issue, choose what best matches it, and we'll give you an instant plain-language read on what's likely wrong.</p>
+
+      <div class="card">
+        <div class="upload-row">
+          <label class="upload-btn" for="photoInput">📷 Add photo</label>
+          <input type="file" id="photoInput" accept="image/*">
+          <div class="upload-preview" id="uploadPreview">
+            <span class="fname">Optional — helps us "see" the issue</span>
+          </div>
+        </div>
+
+        <div class="symptom-grid" id="symptomGrid"></div>
+
+        <div class="loading-block" id="diagLoading" style="display:none;">
+          <div class="spinner"></div>
+          <div class="status-text" id="diagLoadingText">Analyzing symptoms…</div>
+        </div>
+
+        <div id="diagResult" style="display:none;">
+          <div class="result-badge">✓ Diagnosis ready</div>
+          <div class="result-symptom">
+            <div class="emoji" id="resultEmoji">🛢️</div>
+            <div>
+              <div class="name" id="resultName">—</div>
+              <div class="sub">Simulated AI read, for demo purposes</div>
+            </div>
+          </div>
+          <div class="diagnostic-text" id="resultText"></div>
+          <div class="disclaimer">This is a simulated diagnosis for prototype purposes — not a real inspection. A technician will always confirm the actual issue in person.</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="diagnoseBtn" disabled>Get my diagnosis</button>
+        <button class="btn btn-primary" id="toStep2Btn" style="display:none;">See price estimate →</button>
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="screen" id="screen-2">
+      <h1 class="title">Your upfront price</h1>
+      <p class="subtitle">One flat, guaranteed price based on your diagnosis — no surprise fees when the technician shows up.</p>
+
+      <div class="card">
+        <div class="result-symptom">
+          <div class="emoji" id="priceEmoji">🛢️</div>
+          <div>
+            <div class="name" id="priceName">—</div>
+            <div class="sub">Based on your Step 1 diagnosis</div>
+          </div>
+        </div>
+
+        <div class="price-hero">
+          <div class="amount" id="priceAmount">$0</div>
+          <div class="guarantee">🔒 Guaranteed flat price</div>
+        </div>
+
+        <ul class="line-items" id="lineItems"></ul>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="toStep3Btn">Find a technician →</button>
+        <button class="btn btn-ghost" id="backTo1Btn">← Back to diagnosis</button>
+      </div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="screen" id="screen-3">
+      <h1 class="title">Finding your technician</h1>
+      <p class="subtitle" id="matchSubtitle">Matching you with a qualified mobile mechanic nearby.</p>
+
+      <div class="card">
+        <div class="loading-block" id="matchLoading">
+          <div class="radar-wrap">
+            <div class="radar-ring"></div>
+            <div class="radar-ring"></div>
+            <div class="radar-ring"></div>
+            <div class="radar-center">📡</div>
+          </div>
+          <div class="status-text" id="matchLoadingText">Searching nearby technicians…</div>
+        </div>
+
+        <div id="matchResult" style="display:none;">
+          <div class="result-badge">✓ Technician matched</div>
+          <div class="tech-card">
+            <div class="tech-avatar" id="techAvatar">🧑‍🔧</div>
+            <div class="tech-info">
+              <div class="name" id="techName">—</div>
+              <div class="meta" id="techMeta">—</div>
+              <div class="stars" id="techStars">★★★★★</div>
+            </div>
+            <div class="tech-eta">
+              <div class="num" id="techEtaNum">—</div>
+              <div class="unit">min ETA</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="toStep4Btn" style="display:none;">Track live location →</button>
+        <button class="btn btn-ghost" id="backTo2Btn">← Back to price</button>
+      </div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="screen" id="screen-4">
+      <h1 class="title">Your technician is on the way</h1>
+      <p class="subtitle">Simulated live tracking — watch your technician's progress toward your location.</p>
+
+      <div class="card">
+        <div class="eta-panel">
+          <span class="eta-text" id="trackTechLine">—</span>
+          <span class="eta-count" id="etaCountdown">—</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+        <div class="map-wrap" id="mapWrap">
+          <svg viewBox="0 0 400 300" preserveAspectRatio="none">
+            <path id="routePath" d="M 40 250 C 120 260, 90 120, 190 130 C 290 140, 260 40, 360 55"
+                  fill="none" stroke="#c7d2f0" stroke-width="4" stroke-dasharray="2 10" stroke-linecap="round"/>
+          </svg>
+          <div class="map-pin" id="userPin" style="left:90%; top:18%;">📍</div>
+          <div class="map-tech-icon" id="techIcon" style="left:10%; top:83%;">🚐</div>
+        </div>
+
+        <div class="arrived-banner" id="arrivedBanner">🎉 Your technician has arrived and is ready to get started!</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="restartBtn">Start a new request</button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot-note">
+    NemaGo is an interactive prototype. All diagnostics, pricing, technician matching, and live tracking shown here are simulated and do not reflect a real service, real AI analysis, or real technicians.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------------
+  // Mock data — everything "intelligent" in this app is looked up here.
+  // ---------------------------------------------------------------------
+
+  var SYMPTOMS = [
+    {
+      id: "leak",
+      emoji: "🛢️",
+      label: "Fluid leak",
+      diagnosis: "This looks like a coolant or oil leak. The most common causes are a worn hose, a degraded gasket, or a loose drain plug losing fluid over time. Left unaddressed, this can lead to overheating or lubrication issues.",
+      priceLow: 120, priceHigh: 220,
+      lineItems: [["Diagnostic inspection", 45], ["Hose / gasket replacement", 95], ["Fluid top-off", 20]]
+    },
+    {
+      id: "belt",
+      emoji: "🎵",
+      label: "Squealing / worn belt",
+      diagnosis: "That squealing sound is a classic sign of a worn or loose serpentine belt, or a failing tensioner pulley. It usually gets louder on cold starts or when turning the wheel.",
+      priceLow: 90, priceHigh: 160,
+      lineItems: [["Diagnostic inspection", 35], ["Belt replacement", 75], ["Tensioner check", 25]]
+    },
+    {
+      id: "light",
+      emoji: "⚠️",
+      label: "Warning light",
+      diagnosis: "An active dashboard warning light usually means your car's onboard computer has flagged a sensor reading outside its normal range. It's often minor, but it's worth scanning before it escalates.",
+      priceLow: 80, priceHigh: 140,
+      lineItems: [["OBD-II code scan", 40], ["Sensor inspection", 50], ["Reset & verification", 15]]
+    },
+    {
+      id: "battery",
+      emoji: "🔋",
+      label: "Won't start / battery",
+      diagnosis: "Slow cranking or a dead start typically points to a weak or aging battery, corroded terminals, or in some cases a failing alternator not keeping the battery charged.",
+      priceLow: 130, priceHigh: 260,
+      lineItems: [["Battery & alternator test", 40], ["Battery replacement", 150], ["Terminal cleaning", 20]]
+    },
+    {
+      id: "brake",
+      emoji: "🛑",
+      label: "Brake issue",
+      diagnosis: "Grinding, squeaking, or a soft brake pedal usually means worn brake pads, low brake fluid, or air in the brake line. This is safety-related, so it's worth prioritizing.",
+      priceLow: 150, priceHigh: 300,
+      lineItems: [["Brake system inspection", 50], ["Pad replacement", 180], ["Fluid check & top-off", 25]]
+    },
+    {
+      id: "tire",
+      emoji: "🛞",
+      label: "Flat / losing air",
+      diagnosis: "A flat or slowly deflating tire is most often caused by a puncture, a damaged valve stem, or a bead that's lost its seal against the rim.",
+      priceLow: 60, priceHigh: 120,
+      lineItems: [["Tire inspection", 25], ["Patch / plug repair", 45], ["Re-inflation & seal check", 15]]
+    }
+  ];
+
+  var TECHNICIANS = [
+    { name: "Marcus D.", avatar: "🧑🏾‍🔧", rating: 4.9, vehicle: "Ford Transit", distanceMi: 2.1 },
+    { name: "Priya S.",  avatar: "👩🏽‍🔧", rating: 4.8, vehicle: "RAM ProMaster", distanceMi: 3.4 },
+    { name: "Owen K.",   avatar: "🧑🏻‍🔧", rating: 4.95, vehicle: "Sprinter Van", distanceMi: 1.6 },
+    { name: "Alicia R.", avatar: "👩🏻‍🔧", rating: 4.85, vehicle: "Chevy Express", distanceMi: 2.8 }
+  ];
+
+  var DIAG_STATUS_MESSAGES = [
+    "Analyzing symptoms…",
+    "Comparing against common failure patterns…",
+    "Finalizing diagnosis…"
+  ];
+
+  var MATCH_STATUS_MESSAGES = [
+    "Searching nearby technicians…",
+    "Checking availability…",
+    "Confirming best match…"
+  ];
+
+  // ---------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------
+
+  var state = {
+    step: 1,
+    symptom: null,
+    price: null,
+    lineItems: null,
+    technician: null,
+    etaMin: null,
+    uploadedUrl: null
+  };
+
+  var TRACK_DURATION_MS = 18000;
+  var trackTimer = null;
+  var trackStart = null;
+
+  // ---------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------
+
+  function $(id) { return document.getElementById(id); }
+
+  function randRange(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+  function setStep(n) {
+    state.step = n;
+    for (var i = 1; i <= 4; i++) {
+      $("screen-" + i).classList.toggle("visible", i === n);
+      var seg = document.querySelector('.seg[data-seg="' + i + '"]');
+      seg.classList.toggle("done", i < n);
+      seg.classList.toggle("active", i === n);
+    }
+    var labels = document.querySelectorAll("#stepLabels span");
+    labels.forEach(function (el, idx) {
+      el.classList.toggle("current", idx === n - 1);
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ---------------------------------------------------------------------
+  // Step 1 — symptom picker + simulated diagnosis
+  // ---------------------------------------------------------------------
+
+  function renderSymptomGrid() {
+    var grid = $("symptomGrid");
+    grid.innerHTML = "";
+    SYMPTOMS.forEach(function (s) {
+      var card = document.createElement("div");
+      card.className = "symptom-card";
+      card.setAttribute("data-id", s.id);
+      card.innerHTML = '<span class="emoji">' + s.emoji + '</span><span class="label">' + s.label + '</span>';
+      card.addEventListener("click", function () { selectSymptom(s.id); });
+      grid.appendChild(card);
+    });
+  }
+
+  function selectSymptom(id) {
+    state.symptom = SYMPTOMS.filter(function (s) { return s.id === id; })[0];
+    document.querySelectorAll(".symptom-card").forEach(function (el) {
+      el.classList.toggle("selected", el.getAttribute("data-id") === id);
+    });
+    $("diagnoseBtn").disabled = false;
+    $("diagResult").style.display = "none";
+    $("toStep2Btn").style.display = "none";
+    $("diagnoseBtn").style.display = "inline-flex";
+  }
+
+  $("photoInput").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    var preview = $("uploadPreview");
+    if (!file) {
+      preview.innerHTML = '<span class="fname">Optional — helps us "see" the issue</span>';
+      return;
+    }
+    if (state.uploadedUrl) URL.revokeObjectURL(state.uploadedUrl);
+    state.uploadedUrl = URL.createObjectURL(file);
+    preview.innerHTML =
+      '<img src="' + state.uploadedUrl + '" alt="">' +
+      '<span class="fname">' + file.name + '</span>';
+  });
+
+  $("diagnoseBtn").addEventListener("click", function () {
+    if (!state.symptom) return;
+    $("diagnoseBtn").style.display = "none";
+    $("diagResult").style.display = "none";
+    $("diagLoading").style.display = "flex";
+
+    var msgIdx = 0;
+    $("diagLoadingText").textContent = DIAG_STATUS_MESSAGES[0];
+    var interval = setInterval(function () {
+      msgIdx++;
+      if (msgIdx < DIAG_STATUS_MESSAGES.length) {
+        $("diagLoadingText").textContent = DIAG_STATUS_MESSAGES[msgIdx];
+      }
+    }, 700);
+
+    setTimeout(function () {
+      clearInterval(interval);
+      $("diagLoading").style.display = "none";
+
+      var s = state.symptom;
+      $("resultEmoji").textContent = s.emoji;
+      $("resultName").textContent = s.label;
+      $("resultText").textContent = s.diagnosis;
+      $("diagResult").style.display = "block";
+      $("toStep2Btn").style.display = "inline-flex";
+
+      // Lock in a price for this session once diagnosed.
+      state.price = randRange(s.priceLow, s.priceHigh);
+      state.lineItems = s.lineItems;
+    }, 2100);
+  });
+
+  $("toStep2Btn").addEventListener("click", function () {
+    populateStep2();
+    setStep(2);
+  });
+
+  // ---------------------------------------------------------------------
+  // Step 2 — simulated upfront pricing
+  // ---------------------------------------------------------------------
+
+  function populateStep2() {
+    var s = state.symptom;
+    $("priceEmoji").textContent = s.emoji;
+    $("priceName").textContent = s.label;
+
+    var dollars = state.price;
+    $("priceAmount").innerHTML = "$" + dollars + '<span class="cents">.00</span>';
+
+    var list = $("lineItems");
+    list.innerHTML = "";
+    var sumOfParts = 0;
+    state.lineItems.forEach(function (item) {
+      sumOfParts += item[1];
+      var li = document.createElement("li");
+      li.innerHTML = "<span>" + item[0] + "</span><span>$" + item[1] + "</span>";
+      list.appendChild(li);
+    });
+    // Reconcile a "service & dispatch fee" line so items sum to the guaranteed price.
+    var remainder = Math.max(dollars - sumOfParts, 15);
+    var feeLi = document.createElement("li");
+    feeLi.innerHTML = "<span>Service & dispatch fee</span><span>$" + remainder + "</span>";
+    list.appendChild(feeLi);
+
+    var totalLi = document.createElement("li");
+    totalLi.className = "total";
+    totalLi.innerHTML = "<span>Total (guaranteed)</span><span>$" + (sumOfParts + remainder) + "</span>";
+    list.appendChild(totalLi);
+
+    state.price = sumOfParts + remainder;
+  }
+
+  $("backTo1Btn").addEventListener("click", function () { setStep(1); });
+
+  // ---------------------------------------------------------------------
+  // Step 3 — simulated technician matchmaking
+  // ---------------------------------------------------------------------
+
+  $("toStep3Btn").addEventListener("click", function () {
+    setStep(3);
+    runMatchmaking();
+  });
+
+  $("backTo2Btn").addEventListener("click", function () { setStep(2); });
+
+  function runMatchmaking() {
+    $("matchLoading").style.display = "flex";
+    $("matchResult").style.display = "none";
+    $("toStep4Btn").style.display = "none";
+
+    var msgIdx = 0;
+    $("matchLoadingText").textContent = MATCH_STATUS_MESSAGES[0];
+    var interval = setInterval(function () {
+      msgIdx++;
+      if (msgIdx < MATCH_STATUS_MESSAGES.length) {
+        $("matchLoadingText").textContent = MATCH_STATUS_MESSAGES[msgIdx];
+      }
+    }, 750);
+
+    setTimeout(function () {
+      clearInterval(interval);
+      $("matchLoading").style.display = "none";
+
+      var tech = TECHNICIANS[randRange(0, TECHNICIANS.length - 1)];
+      var eta = randRange(8, 22);
+      state.technician = tech;
+      state.etaMin = eta;
+
+      $("techAvatar").textContent = tech.avatar;
+      $("techName").textContent = tech.name;
+      $("techMeta").textContent = tech.vehicle + " · " + tech.distanceMi + " mi away";
+      $("techStars").textContent = "★".repeat(Math.round(tech.rating)) + " " + tech.rating.toFixed(2);
+      $("techEtaNum").textContent = eta;
+
+      $("matchResult").style.display = "block";
+      $("toStep4Btn").style.display = "inline-flex";
+    }, 2400);
+  }
+
+  $("toStep4Btn").addEventListener("click", function () {
+    populateStep4();
+    setStep(4);
+    startTracking();
+  });
+
+  // ---------------------------------------------------------------------
+  // Step 4 — simulated live map tracking
+  // ---------------------------------------------------------------------
+
+  var routePathEl;
+
+  function populateStep4() {
+    $("trackTechLine").textContent = state.technician.name + " · " + state.technician.vehicle;
+    $("arrivedBanner").classList.remove("visible");
+    $("progressFill").style.width = "0%";
+    $("etaCountdown").textContent = state.etaMin + " min";
+    routePathEl = $("routePath");
+  }
+
+  function pointAtLength(fraction) {
+    var len = routePathEl.getTotalLength();
+    var pt = routePathEl.getPointAtLength(len * fraction);
+    // Convert SVG viewBox coords (400x300) to percentages for absolute positioning.
+    return { xPct: (pt.x / 400) * 100, yPct: (pt.y / 300) * 100 };
+  }
+
+  function startTracking() {
+    if (trackTimer) cancelAnimationFrame(trackTimer);
+    trackStart = performance.now();
+
+    function tick(now) {
+      var elapsed = now - trackStart;
+      var fraction = Math.min(elapsed / TRACK_DURATION_MS, 1);
+
+      var pos = pointAtLength(fraction);
+      $("techIcon").style.left = pos.xPct + "%";
+      $("techIcon").style.top = pos.yPct + "%";
+
+      $("progressFill").style.width = (fraction * 100) + "%";
+      var remainingMin = Math.max(Math.ceil(state.etaMin * (1 - fraction)), 0);
+      $("etaCountdown").textContent = fraction >= 1 ? "Arrived" : remainingMin + " min";
+
+      if (fraction < 1) {
+        trackTimer = requestAnimationFrame(tick);
+      } else {
+        $("arrivedBanner").classList.add("visible");
+      }
+    }
+    trackTimer = requestAnimationFrame(tick);
+  }
+
+  $("restartBtn").addEventListener("click", function () {
+    if (trackTimer) cancelAnimationFrame(trackTimer);
+    if (state.uploadedUrl) URL.revokeObjectURL(state.uploadedUrl);
+
+    state = { step: 1, symptom: null, price: null, lineItems: null, technician: null, etaMin: null, uploadedUrl: null };
+
+    $("uploadPreview").innerHTML = '<span class="fname">Optional — helps us "see" the issue</span>';
+    $("photoInput").value = "";
+    document.querySelectorAll(".symptom-card").forEach(function (el) { el.classList.remove("selected"); });
+    $("diagnoseBtn").disabled = true;
+    $("diagnoseBtn").style.display = "inline-flex";
+    $("diagResult").style.display = "none";
+    $("toStep2Btn").style.display = "none";
+
+    setStep(1);
+  });
+
+  // ---------------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------------
+
+  renderSymptomGrid();
+  setStep(1);
+
+})();
+</script>
+</body>
+</html>
