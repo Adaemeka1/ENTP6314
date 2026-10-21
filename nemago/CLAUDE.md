@@ -14,6 +14,8 @@ root [`../CLAUDE.md`](../CLAUDE.md), which still governs the unrelated
   demo with mocked diagnosis, pricing, matching and tracking. It predates the
   MVP spec and does not implement it. It is deployed to Vercel from this
   folder (`.vercel/`).
+- `app/`: the **MVP app** (Next.js + Supabase Auth, approved 2026-10-21).
+  So far it has sign-in (F0) only. Setup steps are in `app/README.md`.
 - `research/`: market and competitor research.
 - `strategy/`: spec audits (`spec-audit.md` is current; `spec-audit-v1.md`
   audited the earlier prototype PRD).
@@ -26,10 +28,16 @@ client-side. Do not grow it into the MVP piece by piece.
 
 ## Building the MVP
 
-- **No stack chosen yet.** Before writing any MVP code, propose a stack and
-  folder layout and get explicit approval. MVP code goes in its own
-  subfolder, not in `index.html`.
-- **Build in the PRD's feature order (F1 to F7)**, one feature at a time, and
+- **Stack:** Next.js (App Router) + Supabase (Auth and Postgres), hosted
+  on Vercel. MVP code lives in `app/`, not in `index.html`. Adding another
+  major service or framework still needs explicit approval first.
+- **Auth rules:** check sign-in on the server with `supabase.auth.getUser()`.
+  Protect data with Row Level Security; users must never be able to set
+  their own `mechanic_verified`. Database changes go in `app/supabase/`.
+- **`app/` is not part of the prototype deploy.** `.vercelignore` keeps it
+  out of `npx vercel --prod` runs from this folder; the app gets its own
+  Vercel project.
+- **Build in the PRD's feature order (F0 to F7)**, one feature at a time, and
   check each against its "Done means" line before moving on.
 - **Don't build anything on the PRD's "Out of scope for the MVP" list**, even
   if it would be easy. Treat a request for one of those items as a scope

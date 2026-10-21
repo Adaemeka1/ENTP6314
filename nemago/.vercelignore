@@ -1,0 +1,2 @@
+# Keep the MVP app out of the prototype deploy (it gets its own Vercel project).
+app

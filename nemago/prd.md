@@ -49,6 +49,19 @@ without marketing themselves.
 
 ## Features (build in this order)
 
+### F0. Sign-in (foundation for every feature)
+
+Drivers and mechanics sign in with Google or with email and password
+(Supabase Auth). New users choose "driver" or "mechanic" at sign-up; Google
+users choose right after their first sign-in. Anyone signed out only sees
+the sign-in, sign-up and password-reset pages. A mechanic sees a
+"verification pending" screen and no jobs until staff mark them verified
+(F7). Built in `app/`.
+
+**Done means:** a signed-out visitor to any app page lands on sign-in; a new
+driver reaches the driver home; a new mechanic reaches "verification pending"
+and cannot change their own verified status.
+
 ### F1. Symptom intake and triage
 
 The driver adds their vehicle (VIN scan or year/make/model/engine, plus current
@@ -255,6 +268,8 @@ mechanic is on site**. NemaGo's position against them rests on three things:
 | Data | Kept? | Why |
 |---|---|---|
 | Driver account (name, phone, email) | Stored | Account and job history |
+| Sign-in: role (driver/mechanic), password | Role stored. Password never stored by NemaGo; Supabase Auth keeps only a one-way hash. Google users have no password with us | Sign-in and access |
+| Session tokens | In the user's browser cookies only; deleted on sign-out | Keeping people signed in |
 | Vehicles (VIN, year/make/model, mileage over time) | Stored | Pricing, reminders, prediction |
 | Symptom photos, descriptions, warning lights | Stored with consent for training; otherwise deleted after job closes | Triage and training |
 | OBD fault codes | Stored | Triage and training |

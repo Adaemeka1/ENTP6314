@@ -1,0 +1,10 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+// POST only, so a link or image on another site can't sign someone out.
+export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  // Cancels the session with Supabase and deletes the session cookies.
+  await supabase.auth.signOut();
+  return NextResponse.redirect(new URL("/login?signed_out=1", request.url), { status: 303 });
+}
