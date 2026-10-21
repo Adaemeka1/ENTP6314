@@ -62,3 +62,12 @@ Follow the PRD's "Data we store" table exactly:
 
 If a feature needs to keep data the table doesn't list, flag it and update
 the PRD before building it.
+
+## Next up in class (Session 8, Part 11)
+
+We plan to tackle these two milestones next, in the room walkthrough:
+
+- **Milestone 11a:** add Vercel Analytics.
+- **Milestone 11f:** add email notifications with Resend (test API key only, kept in an env variable, never committed).
+
+Not started yet. Don't build either one until we start it in class.

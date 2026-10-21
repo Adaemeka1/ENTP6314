@@ -309,3 +309,10 @@ These are not yet answered and need a team decision:
 - **Price guarantee backstop:** who absorbs the cost when a job takes longer
   than book time (mechanic, NemaGo, or split).
 - **Insurance minimums** for mechanics, and NemaGo's own liability cover.
+
+## Next up in class (Session 8, Part 11)
+
+- **Milestone 11a:** Vercel Analytics.
+- **Milestone 11f:** email notifications via Resend.
+
+Planned for the next class session. Not started yet.
