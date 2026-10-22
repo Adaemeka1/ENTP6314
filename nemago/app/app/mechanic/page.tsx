@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { firstName, requireProfile } from "@/lib/profile";
@@ -32,6 +33,10 @@ export default async function MechanicHome({
           </ol>
           <p className="muted">Uploading documents is coming soon (F7). We’ll email you when you’re approved.</p>
         </div>
+        <Link href="/mechanic/billing" className="card card-link">
+          <strong>Billing</strong>
+          <p className="muted">Your monthly platform subscription.</p>
+        </Link>
       </AppShell>
     );
   }
@@ -40,6 +45,10 @@ export default async function MechanicHome({
     <AppShell passwordUpdated={passwordUpdated}>
       <h1>Hi {firstName(profile, user.email)}</h1>
       <span className="badge badge-success">Verified</span>
+      <Link href="/mechanic/billing" className="card card-link">
+        <strong>Billing</strong>
+        <p className="muted">Your monthly platform subscription.</p>
+      </Link>
       <div className="card card-disabled">
         <strong>Jobs near you</strong>
         <p className="muted">Pre-priced, pre-diagnosed jobs will show up here. Coming soon (F3).</p>

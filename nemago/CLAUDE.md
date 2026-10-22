@@ -15,7 +15,9 @@ root [`../CLAUDE.md`](../CLAUDE.md), which still governs the unrelated
   MVP spec and does not implement it. It is deployed to Vercel from this
   folder (`.vercel/`).
 - `app/`: the **MVP app** (Next.js + Supabase Auth, approved 2026-10-21).
-  So far it has sign-in (F0) only. Setup steps are in `app/README.md`.
+  So far it has sign-in (F0), driver/mechanic tables, a simulated payment
+  screen and a keyword-based Car Helper chat (all three are demos, not the
+  real F1/F5 features). Setup steps are in `app/README.md`.
 - `research/`: market and competitor research.
 - `strategy/`: spec audits (`spec-audit.md` is current; `spec-audit-v1.md`
   audited the earlier prototype PRD).

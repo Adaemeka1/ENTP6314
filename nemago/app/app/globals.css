@@ -333,6 +333,154 @@ input:focus-visible,
   margin-top: 6px;
 }
 
+/* Links that look like cards */
+.card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-link:hover {
+  border-color: var(--primary);
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+/* Car Helper chat */
+.chat-log {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.bubble {
+  max-width: 92%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.bubble p {
+  margin: 6px 0 0;
+}
+
+.bubble-me {
+  justify-self: end;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.safety {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+}
+
+.safety-ok {
+  background: var(--success-soft);
+  color: #13724c;
+}
+
+.safety-careful {
+  background: #fff1ea;
+  color: #b84a1c;
+}
+
+.safety-stop {
+  background: var(--error-soft);
+  color: var(--error);
+}
+
+.safety-unsure {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chip {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.chat-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.chat-form input {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-send {
+  width: auto;
+}
+
+/* Payment screens */
+.pay-title {
+  font-size: 1.15rem;
+  margin: 8px 0 0;
+}
+
+.pay-amount {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+
+.pay-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+input[readonly] {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.fee-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.fee-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 @media (max-width: 380px) {
   .roles {
     grid-template-columns: 1fr;

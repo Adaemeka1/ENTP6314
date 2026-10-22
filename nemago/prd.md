@@ -276,6 +276,8 @@ mechanic is on site**. NemaGo's position against them rests on three things:
 | Job records (diagnosis predicted vs. confirmed, parts, labor time, price quoted vs. final, ratings) | Stored | The flywheel dataset |
 | Driver location | Used live during a job; only job address kept afterward | Dispatch and tracking |
 | Mechanic profile, documents, background-check result | Stored | Verification and compliance |
+| Mechanic phone, certification (name, number, expiry), service area (city, zip, radius) | Stored. Service area is a fixed area, not GPS | Verification and matching |
+| Mechanic subscription status and renewal date | Stored (placeholder: the business model is still an open decision) | Platform subscription |
 | Mechanic live location | Used live while on shift; not kept afterward | Matching and tracking |
 | Card numbers | **Not stored** — held by the payment provider | Payments |
 
