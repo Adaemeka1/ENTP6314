@@ -1,5 +1,6 @@
 -- NemaGo sign-in: profiles table.
--- Run this once in the Supabase dashboard: SQL Editor -> New query -> paste -> Run.
+-- Run this in the Supabase dashboard: SQL Editor -> New query -> paste -> Run.
+-- It is safe to run more than once.
 --
 -- Passwords and sessions are handled by Supabase Auth (the auth.users table).
 -- This table only stores who the person is in NemaGo: driver or mechanic.
@@ -16,12 +17,14 @@ create table if not exists public.profiles (
 alter table public.profiles enable row level security;
 
 -- People can read only their own profile.
+drop policy if exists "Read own profile" on public.profiles;
 create policy "Read own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
 -- People can create only their own profile, and can't mark themselves verified.
 -- (Used by Google sign-ins, who pick a role after their first login.)
+drop policy if exists "Create own unverified profile" on public.profiles;
 create policy "Create own unverified profile"
   on public.profiles for insert
   with check (auth.uid() = id and mechanic_verified = false);
