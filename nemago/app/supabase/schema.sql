@@ -16,6 +16,11 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- Newer Supabase projects don't give signed-in users access to new tables
+-- automatically, so we say it here. The policies below still limit each person
+-- to their own row. There is no update or delete access at all.
+grant select, insert on public.profiles to authenticated;
+
 -- People can read only their own profile.
 drop policy if exists "Read own profile" on public.profiles;
 create policy "Read own profile"

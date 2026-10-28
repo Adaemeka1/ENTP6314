@@ -103,6 +103,9 @@ create policy "Update own mechanic details"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
+-- Signed-in users can read their own rows (the policies above limit it to their own).
+grant select on public.drivers, public.mechanics to authenticated;
+
 -- Column limits: people can edit their own contact and service details, but
 -- NOT subscription_status or subscription_renews_on.
 revoke update on public.drivers from anon, authenticated;
