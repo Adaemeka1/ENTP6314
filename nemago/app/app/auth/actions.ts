@@ -132,6 +132,9 @@ export async function chooseRole(formData: FormData) {
     full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
   });
 
-  if (error) redirect("/choose-role?error=generic");
+  if (error) {
+    console.error("chooseRole insert failed:", error.code, error.message);
+    redirect("/choose-role?error=generic");
+  }
   redirect("/");
 }

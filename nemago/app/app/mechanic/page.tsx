@@ -45,6 +45,10 @@ export default async function MechanicHome({
     <AppShell passwordUpdated={passwordUpdated}>
       <h1>Hi {firstName(profile, user.email)}</h1>
       <span className="badge badge-success">Verified</span>
+      <Link href="/mechanic/jobs" className="card card-link">
+        <strong>Job requests</strong>
+        <p className="muted">See new requests from drivers and accept them live.</p>
+      </Link>
       <Link href="/mechanic/billing" className="card card-link">
         <strong>Billing</strong>
         <p className="muted">Your monthly platform subscription.</p>

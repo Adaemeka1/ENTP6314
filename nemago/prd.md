@@ -273,6 +273,7 @@ mechanic is on site**. NemaGo's position against them rests on three things:
 | Vehicles (VIN, year/make/model, mileage over time) | Stored | Pricing, reminders, prediction |
 | Symptom photos, descriptions, warning lights | Stored with consent for training; otherwise deleted after job closes | Triage and training |
 | OBD fault codes | Stored | Triage and training |
+| Dispatch request (problem description, general area, street address, status, accepting mechanic's first name and ETA) | Stored. The description is erased when the driver cancels, unless they consent to training use. The street address is visible only to the driver and the mechanic who accepted. No GPS is stored | Matching and job history |
 | Job records (diagnosis predicted vs. confirmed, parts, labor time, price quoted vs. final, ratings) | Stored | The flywheel dataset |
 | Driver location | Used live during a job; only job address kept afterward | Dispatch and tracking |
 | Mechanic profile, documents, background-check result | Stored | Verification and compliance |

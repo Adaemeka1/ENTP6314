@@ -16,6 +16,8 @@ Car Helper chat. The old clickable demo is `../index.html` and is separate.
 | `/driver/chat` | Car Helper: type what's wrong, get a plain-English answer |
 | `/driver/pay` | Pretend payment of the flat dispatch fee, plus a "who pays what" table |
 | `/mechanic` | "Verification pending" until staff approve the mechanic (F7) |
+| `/driver/request` | Driver asks for a mechanic and watches the request update live |
+| `/mechanic/jobs` | Verified mechanics see new requests live and accept one (first to accept wins) |
 | `/mechanic/billing` | Pretend payment of the monthly platform subscription |
 
 The Car Helper and the payment screens are demos. The Car Helper matches key
@@ -36,9 +38,11 @@ You need to do these steps yourself in your own accounts.
 3. Do the same for the second file, `supabase/drivers-and-mechanics.sql`. It
    creates the `drivers` and `mechanics` tables (phone, certification,
    subscription, service area). Run it after `schema.sql`.
-4. Open **Project Settings -> API** and copy the **Project URL** and the
+4. Do the same for the third file, `supabase/dispatch.sql`. It creates the
+   dispatch requests, the rules for who can see them, and turns on Realtime.
+5. Open **Project Settings -> API** and copy the **Project URL** and the
    **anon public** key.
-5. In this folder, copy `.env.example` to `.env.local` and paste them in.
+6. In this folder, copy `.env.example` to `.env.local` and paste them in.
 
 ### 2. Set the redirect URLs
 
@@ -71,6 +75,18 @@ npm run dev
 ```
 
 Then open http://localhost:3000.
+
+## Trying the live dispatch flow
+
+You need two accounts (one driver, one mechanic), signed in at the same time in
+two separate browser windows. A normal window plus a private/incognito window
+works, because they keep separate sign-ins. Approve the mechanic first (below),
+then have the driver tap **Request a mechanic** and watch the mechanic's
+**Job requests** screen.
+
+Screens update instantly through Supabase Realtime. As a safety net they also
+re-check every 5 to 10 seconds, so they still work if Realtime is off. The small
+dot at the top of each screen says which mode you are in.
 
 ## Approving a mechanic (until F7 exists)
 

@@ -481,6 +481,110 @@ input[readonly] {
   white-space: nowrap;
 }
 
+/* Live dispatch screens */
+textarea,
+select {
+  font: inherit;
+  font-weight: 400;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+}
+
+.live-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #b9c0d0;
+}
+
+.live-dot-on {
+  background: var(--success);
+  box-shadow: 0 0 0 0 rgba(31, 169, 113, 0.5);
+  animation: pulse 1.8s infinite;
+}
+
+@keyframes pulse {
+  70% {
+    box-shadow: 0 0 0 8px rgba(31, 169, 113, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(31, 169, 113, 0);
+  }
+}
+
+.alert-banner {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  animation: pop 0.35s ease-out;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.eta-pick {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  margin: 22px 0 0;
+}
+
+.job-card strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.card > .btn {
+  margin-top: 12px;
+}
+
+.job-new {
+  border-color: var(--accent);
+  animation: pop 0.35s ease-out;
+}
+
+.badge-new {
+  background: var(--accent);
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.job-matched {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+
 @media (max-width: 380px) {
   .roles {
     grid-template-columns: 1fr;

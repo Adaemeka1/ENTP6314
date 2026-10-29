@@ -16,8 +16,9 @@ root [`../CLAUDE.md`](../CLAUDE.md), which still governs the unrelated
   folder (`.vercel/`).
 - `app/`: the **MVP app** (Next.js + Supabase Auth, approved 2026-10-21).
   So far it has sign-in (F0), driver/mechanic tables, a simulated payment
-  screen and a keyword-based Car Helper chat (all three are demos, not the
-  real F1/F5 features). Setup steps are in `app/README.md`.
+  screen and a keyword-based Car Helper chat (these are demos, not the real
+  F1/F5 features), plus a first cut of F3 dispatch: live driver requests and
+  mechanic accept (Supabase Realtime). Setup steps are in `app/README.md`.
 - `research/`: market and competitor research.
 - `strategy/`: spec audits (`spec-audit.md` is current; `spec-audit-v1.md`
   audited the earlier prototype PRD).
