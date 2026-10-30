@@ -20,15 +20,11 @@ export default async function DriverHome({
 
       <Link href="/driver/request" className="card card-link">
         <strong>Request a mechanic</strong>
-        <p className="muted">Send your problem to verified mechanics and watch for a match.</p>
+        <p className="muted">Pay securely, send your problem to verified mechanics, and watch for a match.</p>
       </Link>
       <Link href="/driver/chat" className="card card-link">
         <strong>Ask the Car Helper</strong>
         <p className="muted">Type what&rsquo;s wrong and get a plain-English answer.</p>
-      </Link>
-      <Link href="/driver/pay" className="card card-link">
-        <strong>Pay dispatch fee</strong>
-        <p className="muted">One flat fee to send a mechanic to you.</p>
       </Link>
 
       <div className="card card-disabled">

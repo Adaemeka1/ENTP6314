@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Pages anyone can open without being signed in.
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth"];
+// /api/stripe/webhook is called by Stripe, which has no sign-in. It proves who it
+// is with a signature instead (checked inside the route).
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth", "/api/stripe/webhook"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -38,6 +40,10 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname, search } = request.nextUrl;
+
+  if (!user && !isPublic(pathname) && pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
+  }
 
   if (!user && !isPublic(pathname)) {
     const url = request.nextUrl.clone();

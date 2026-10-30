@@ -1,13 +1,29 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LiveStatus } from "@/components/LiveStatus";
 import { createClient } from "@/lib/supabase/client";
-import { ETA_CHOICES, contactOf, friendlyError, timeAgo } from "@/lib/dispatch";
+import {
+  ETA_CHOICES,
+  contactOf,
+  friendlyError,
+  postJson,
+  timeAgo,
+  type DispatchRequest,
+} from "@/lib/dispatch";
+import { formatCents, mechanicShareCents } from "@/lib/fees";
 import { useDispatchFeed, useNow } from "@/lib/useDispatchFeed";
 
-// The mechanic's screen: new job requests pop up live, and one tap accepts.
-export function MechanicJobs() {
+// What the mechanic will be paid for a job, e.g. "$91.37". Empty if the price isn't known.
+function earnings(r: DispatchRequest) {
+  if (r.price_cents === null || r.platform_fee_cents === null) return null;
+  return formatCents(mechanicShareCents(r.price_cents, r.platform_fee_cents));
+}
+
+// The mechanic's screen: new paid requests pop up live, one tap accepts, and
+// finishing the job pays them.
+export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
   const { requests, loaded, failed, live, reload } = useDispatchFeed();
   const now = useNow();
 
@@ -48,13 +64,23 @@ export function MechanicJobs() {
     setBusyId("");
   }
 
+  // Marks the job complete and pays the mechanic. Safe to tap again if a payout failed.
+  async function complete(id: string) {
+    setBusyId(id);
+    setMessage("");
+    const { ok, data } = await postJson("/api/dispatch/complete", { requestId: id });
+    if (!ok) setMessage(friendlyError(data.error));
+    await reload();
+    setBusyId("");
+  }
+
   if (!loaded) return <p className="muted">Loading…</p>;
 
   if (failed && requests.length === 0) {
     return (
       <div className="notice notice-error">
         We couldn&rsquo;t load job requests. Please refresh the page. (If this keeps happening, the
-        database setup for dispatch may not be finished.)
+        database setup for dispatch or payments may not be finished.)
       </div>
     );
   }
@@ -63,6 +89,12 @@ export function MechanicJobs() {
     <div>
       <LiveStatus live={live} />
 
+      {!payoutsEnabled && (
+        <div className="notice notice-error">
+          You need to set up payouts before you can accept jobs.{" "}
+          <Link href="/mechanic/payouts">Set Up Payouts</Link>
+        </div>
+      )}
       {open.some((r) => fresh.includes(r.id)) && (
         <div className="alert-banner" role="alert">
           New job request just came in!
@@ -88,13 +120,14 @@ export function MechanicJobs() {
           {fresh.includes(r.id) && <span className="badge badge-new">New</span>}
           <strong>{r.problem}</strong>
           <p className="muted small">
-            {r.area} · {timeAgo(r.created_at, now)}
+            {r.area} · {timeAgo(r.opened_at ?? r.created_at, now)}
+            {earnings(r) && <> · You earn {earnings(r)}</>}
           </p>
           <button
             type="button"
             className="btn btn-primary"
             onClick={() => accept(r.id)}
-            disabled={busyId !== ""}
+            disabled={busyId !== "" || !payoutsEnabled}
           >
             {busyId === r.id ? "Accepting…" : "Accept this job"}
           </button>
@@ -102,27 +135,71 @@ export function MechanicJobs() {
       ))}
 
       {mine.length > 0 && <h2 className="section-title">Your jobs</h2>}
-      {mine.map((r) =>
-        r.status === "accepted" ? (
-          <div key={r.id} className="card job-matched">
-            <span className="badge badge-success">Assigned to you</span>
-            <p>
-              <strong>{contactOf(r)?.driver_first_name ?? "The driver"}</strong> is expecting you in
-              about {r.eta_minutes} minutes.
-            </p>
-            <p className="small">
-              <strong>Problem:</strong> {r.problem}
-              <br />
-              <strong>Go to:</strong> {contactOf(r)?.address}
-            </p>
-          </div>
-        ) : (
+      {mine.map((r) => {
+        if (r.status === "accepted") {
+          return (
+            <div key={r.id} className="card job-matched">
+              <span className="badge badge-success">Assigned to you</span>
+              <p>
+                <strong>{contactOf(r)?.driver_first_name ?? "The driver"}</strong> is expecting you in
+                about {r.eta_minutes} minutes.
+              </p>
+              <p className="small">
+                <strong>Problem:</strong> {r.problem}
+                <br />
+                <strong>Go to:</strong> {contactOf(r)?.address}
+                {earnings(r) && (
+                  <>
+                    <br />
+                    <strong>You&rsquo;ll be paid:</strong> {earnings(r)} when you mark it complete
+                  </>
+                )}
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => complete(r.id)}
+                disabled={busyId !== ""}
+              >
+                {busyId === r.id ? "Completing…" : "Mark job complete"}
+              </button>
+            </div>
+          );
+        }
+        if (r.status === "completed") {
+          return (
+            <div key={r.id} className="card">
+              <span className="badge badge-success">Completed</span>
+              {r.payout_status === "paid_out" && (
+                <p className="small">
+                  <strong>{earnings(r)}</strong> was sent to your Stripe account. Stripe pays it to your
+                  bank on its normal schedule.
+                </p>
+              )}
+              {r.payout_status === "pending" && <p className="small">Sending your payout…</p>}
+              {r.payout_status === "failed" && (
+                <>
+                  <p className="small">The payout hit a problem. Your job is still marked complete.</p>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => complete(r.id)}
+                    disabled={busyId !== ""}
+                  >
+                    {busyId === r.id ? "Trying…" : "Try payout again"}
+                  </button>
+                </>
+              )}
+            </div>
+          );
+        }
+        return (
           <div key={r.id} className="card">
             <span className="badge">Cancelled by the driver</span>
-            <p className="muted small">{r.area}. No action needed.</p>
+            <p className="muted small">{r.area}. No action needed, and nothing is owed.</p>
           </div>
-        ),
-      )}
+        );
+      })}
     </div>
   );
 }

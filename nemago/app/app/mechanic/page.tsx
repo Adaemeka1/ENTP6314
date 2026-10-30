@@ -49,6 +49,10 @@ export default async function MechanicHome({
         <strong>Job requests</strong>
         <p className="muted">See new requests from drivers and accept them live.</p>
       </Link>
+      <Link href="/mechanic/payouts" className="card card-link">
+        <strong>Set Up Payouts</strong>
+        <p className="muted">Link your bank account or debit card so you get paid for jobs.</p>
+      </Link>
       <Link href="/mechanic/billing" className="card card-link">
         <strong>Billing</strong>
         <p className="muted">Your monthly platform subscription.</p>

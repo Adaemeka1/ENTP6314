@@ -141,8 +141,38 @@ real time from acceptance to arrival.
 - NemaGo never stores raw card numbers; card data stays with the payment
   provider.
 
+**Build steps (Stripe Connect, test mode only until a go-live decision).**
+Approved 2026-10-29. The pilot uses one simple rule: the driver is charged when
+they confirm, and refunded in full if they cancel before the job is complete.
+The hold-then-capture flow above is a later refinement.
+
+1. **F5a. Driver checkout.** "Confirm Dispatch" creates a request in the
+   `awaiting_payment` state and a real Stripe Checkout Session for the roadside
+   service price (placeholder: $107.50). The driver is sent to Stripe's hosted,
+   mobile-friendly payment page. The price is set on the server, never by the
+   browser. Mechanics cannot see the request yet.
+2. **F5b. Payment webhook.** A signed Stripe webhook is the only thing that
+   marks a request paid. On a successful payment the request moves
+   `awaiting_payment` -> `open`, which makes it appear on mechanics' live job
+   screens (F3). A payment that arrives for a request that was cancelled, or a
+   second payment for the same request, is refunded automatically.
+3. **F5c. Mechanic payout setup.** A verified mechanic taps "Set Up Payouts" and
+   is sent to Stripe-hosted Express onboarding to link a bank account or debit
+   card. A mechanic cannot accept jobs until Stripe says payouts are enabled.
+4. **F5d. Split payment on completion.** When the mechanic marks the job
+   complete, NemaGo transfers the mechanic's share (price minus the NemaGo
+   service fee) to their Stripe account. The service fee stays in the NemaGo
+   platform balance, which pays out to the NemaGo business bank account. The
+   fee percentage is a placeholder (see Open decisions).
+5. **F5e. Cancellation refunds.** If the driver cancels after paying and before
+   completion, they are refunded in full automatically. No mechanic is paid for
+   a cancelled job.
+
 **Done means:** a driver can complete a job end-to-end without paying outside
-the app, and the mechanic is paid without any manual step.
+the app, a paid request reaches mechanics only after Stripe confirms the
+payment, no request can be charged an amount the server did not set, a cancelled
+paid request is refunded without staff action, and the mechanic is paid without
+any manual step.
 
 ### F6. Diagnostic and predictive-maintenance engine (foundational)
 
@@ -280,6 +310,8 @@ mechanic is on site**. NemaGo's position against them rests on three things:
 | Mechanic phone, certification (name, number, expiry), service area (city, zip, radius) | Stored. Service area is a fixed area, not GPS | Verification and matching |
 | Mechanic subscription status and renewal date | Stored (placeholder: the business model is still an open decision) | Platform subscription |
 | Mechanic live location | Used live while on shift; not kept afterward | Matching and tracking |
+| Payment and payout records (Stripe checkout session, payment, refund and transfer IDs; amounts; payment, refund and payout status) | Stored, in a table only the server can read. IDs only, never card details | Payments, refunds and payouts |
+| Mechanic's Stripe account ID and whether payouts are enabled | Stored. Bank and identity details are held by Stripe, not NemaGo | Mechanic payouts |
 | Card numbers | **Not stored** — held by the payment provider | Payments |
 
 Drivers can export or delete their data. Training uses job data with personal
@@ -327,6 +359,15 @@ These are not yet answered and need a team decision:
 - **Price guarantee backstop:** who absorbs the cost when a job takes longer
   than book time (mechanic, NemaGo, or split).
 - **Insurance minimums** for mechanics, and NemaGo's own liability cover.
+- **Service fee split:** the percentage of each job NemaGo keeps. The app uses a
+  clearly labeled placeholder (15%) until this is decided. It must cover
+  Stripe's own processing fee, which comes out of NemaGo's share.
+- **Cancellation policy:** the pilot refunds drivers in full if they cancel at
+  any point before the job is complete. Whether a late cancellation costs a
+  call-out fee is not decided.
+- **Payments country and go-live:** payments are built for the US and Stripe
+  test mode only. Taking real money needs a separate go-live decision, a
+  finished Stripe account activation, and an answer on mechanic classification.
 
 ## Next up in class (Session 8, Part 11)
 

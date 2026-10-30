@@ -585,6 +585,24 @@ select {
 }
 
 
+/* Checkout */
+.price-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+
+.price-box strong {
+  font-size: 1.25rem;
+}
+
+.notice .btn {
+  margin-top: 10px;
+}
+
 @media (max-width: 380px) {
   .roles {
     grid-template-columns: 1fr;
