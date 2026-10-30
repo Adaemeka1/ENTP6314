@@ -82,7 +82,7 @@ Backend API routes (all in `app/app/api/`, all server-only):
 |---|---|---|
 | `POST /api/checkout` | Driver | Creates the request (`awaiting_payment`) and a Stripe Checkout Session; returns the Stripe URL |
 | `POST /api/stripe/webhook` | Stripe only (no sign-in; verified by signature) | `checkout.session.completed` -> request becomes `open`; `checkout.session.expired` -> cancelled; refunds stray payments |
-| `POST /api/stripe/connect/onboard` | Verified mechanic | Creates the Express account if needed and returns the onboarding link ("Set Up Payouts") |
+| `POST /api/stripe/connect/onboard` | Verified mechanic | Creates the mechanic's Stripe account if needed (Accounts v2: Express dashboard, recipient config, NemaGo collects fees and losses) and returns the onboarding link ("Set Up Payouts") |
 | `POST /api/stripe/connect/status` | Mechanic | Asks Stripe if payouts are enabled and saves the answer |
 | `POST /api/dispatch/complete` | Accepting mechanic | Marks the job complete and sends the mechanic's share via a Stripe transfer |
 | `POST /api/dispatch/cancel` | Driver | Cancels the request and refunds in full if it was paid |
@@ -108,6 +108,14 @@ Money rules:
   pay or refund twice.
 - Stripe IDs live in `dispatch_payments`, which only the server (service role)
   can read. Never store card details.
+- **Accounts v2 only.** Stripe rejects the old `accounts.create({ type: "express" })`
+  for new platforms, so mechanic accounts use `stripe.v2.core.accounts` and
+  `stripe.v2.core.accountLinks`. Because the driver pays NemaGo first and the
+  mechanic is paid later (separate charges and transfers), Stripe only allows
+  NemaGo as the losses collector. This needs the "Refunds and chargebacks
+  liability acknowledgement" accepted once in Stripe (Settings -> Connect ->
+  Platform profile). "Managed Risk" (Stripe collects losses) does not work for
+  this flow.
 - The service-fee percentage and the US country code are labeled placeholders
   (open decisions in the PRD). Don't treat them as final.
 

@@ -4,9 +4,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-// "Set Up Payouts": makes sure the mechanic has a Stripe Express account, then
+// "Set Up Payouts": makes sure the mechanic has a Stripe connected account, then
 // returns a one-time link to Stripe's own onboarding page. Stripe collects and
 // keeps their bank or debit card and identity details. NemaGo never sees them.
+//
+// Uses Stripe's Accounts v2 (the older "type: express" method is no longer
+// allowed for new platforms). NemaGo collects the fees and is responsible for
+// losses, which needs the "Refunds and chargebacks liability acknowledgement" to
+// be accepted once in the Stripe Dashboard (Settings -> Connect -> Platform profile).
 export async function POST(request: Request) {
   const stripe = getStripe();
   const admin = createAdminClient();
@@ -35,13 +40,19 @@ export async function POST(request: Request) {
     let accountId = mechanic?.stripe_account_id ?? null;
 
     if (!accountId) {
-      const account = await stripe.accounts.create(
+      const account = await stripe.v2.core.accounts.create(
         {
-          type: "express",
-          country: CONNECT_COUNTRY,
-          email: user.email ?? undefined,
-          business_type: "individual",
-          capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+          contact_email: user.email ?? undefined,
+          identity: { country: CONNECT_COUNTRY },
+          dashboard: "express",
+          defaults: {
+            currency: "usd",
+            responsibilities: { fees_collector: "application", losses_collector: "application" },
+          },
+          // The mechanic only needs to RECEIVE transfers from NemaGo.
+          configuration: {
+            recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } },
+          },
           metadata: { mechanic_id: user.id },
         },
         { idempotencyKey: "express-account-" + user.id },
@@ -56,11 +67,15 @@ export async function POST(request: Request) {
     }
 
     const site = siteUrl(request);
-    const link = await stripe.accountLinks.create({
+    const link = await stripe.v2.core.accountLinks.create({
       account: accountId,
-      type: "account_onboarding",
-      refresh_url: site + "/mechanic/payouts?refresh=1",
-      return_url: site + "/mechanic/payouts?return=1",
+      use_case: {
+        type: "account_onboarding",
+        account_onboarding: {
+          refresh_url: site + "/mechanic/payouts?refresh=1",
+          return_url: site + "/mechanic/payouts?return=1",
+        },
+      },
     });
     return json({ url: link.url });
   } catch (error) {

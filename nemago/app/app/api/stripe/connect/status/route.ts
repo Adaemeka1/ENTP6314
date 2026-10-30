@@ -25,8 +25,14 @@ export async function POST() {
   }
 
   try {
-    const account = await stripe.accounts.retrieve(mechanic.stripe_account_id);
-    const payoutsEnabled = account.capabilities?.transfers === "active" && account.payouts_enabled === true;
+    const account = await stripe.v2.core.accounts.retrieve(mechanic.stripe_account_id, {
+      include: ["configuration.recipient"],
+    });
+    // Payouts are ready when Stripe says the account can receive transfers from
+    // NemaGo AND can pay out to the mechanic's bank.
+    const balance = account.configuration?.recipient?.capabilities?.stripe_balance;
+    const payoutsEnabled =
+      balance?.stripe_transfers?.status === "active" && balance?.payouts?.status === "active";
 
     const { error } = await admin.rpc("admin_set_connect_account", {
       p_mechanic_id: user.id,
@@ -35,7 +41,7 @@ export async function POST() {
     });
     if (error) throw new Error(error.message);
 
-    return json({ hasAccount: true, payoutsEnabled, detailsSubmitted: account.details_submitted });
+    return json({ hasAccount: true, payoutsEnabled });
   } catch (error) {
     console.error("status: could not check the payout account", error);
     return json({ error: "stripe_failed" }, 502);

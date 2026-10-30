@@ -362,6 +362,12 @@ These are not yet answered and need a team decision:
 - **Service fee split:** the percentage of each job NemaGo keeps. The app uses a
   clearly labeled placeholder (15%) until this is decided. It must cover
   Stripe's own processing fee, which comes out of NemaGo's share.
+- **Loss liability:** because NemaGo collects the payment and pays mechanics
+  afterward, NemaGo is responsible for losses from refunds and chargebacks that
+  happen after a mechanic has been paid (Stripe requires this acknowledgement
+  for this payment design). The acknowledgement is accepted in the Stripe test
+  account; the business should decide before taking real money how much risk
+  to carry, and whether to hold back part of a payout.
 - **Cancellation policy:** the pilot refunds drivers in full if they cancel at
   any point before the job is complete. Whether a late cancellation costs a
   call-out fee is not decided.

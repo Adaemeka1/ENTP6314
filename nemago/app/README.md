@@ -35,6 +35,20 @@ You need to do these steps yourself in your own accounts.
 
 ### 1. Create a Supabase project
 
+**Shortcut: one paste.** All the database files below can be installed in one go.
+This copies them, in the right order, to your clipboard (run it from this folder),
+then paste into **SQL Editor -> New query** and click **Run**:
+
+```bash
+(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql; echo "notify pgrst, 'reload schema';") | pbcopy
+```
+
+`retire-old-dispatch.sql` removes an older NemaGo dispatch design if one is in the
+database (Supabase will ask you to confirm a "destructive operation"). It only
+touches tables it recognizes as the old design, and it stops with an error if any
+of them contain rows. Everything is safe to run again. The numbered steps below do
+the same thing one file at a time.
+
 1. Go to https://supabase.com, sign in, and click **New project**.
 2. When it's ready, open **SQL Editor -> New query**, paste all of
    `supabase/schema.sql`, and click **Run**.
