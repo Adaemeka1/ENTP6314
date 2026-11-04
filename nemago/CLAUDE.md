@@ -18,7 +18,7 @@ root [`../CLAUDE.md`](../CLAUDE.md), which still governs the unrelated
   So far it has sign-in (F0), driver/mechanic tables, a simulated payment
   screen and a keyword-based Car Helper chat (these are demos, not the real
   F1/F5 features), plus a first cut of F3 dispatch: live driver requests and
-  mechanic accept (Supabase Realtime), and Stripe Connect payments (F5a to F5e
+  mechanic accept (Supabase Realtime), and Stripe Connect payments (F5a to F5f
   in the PRD). Setup steps are in `app/README.md`.
 - `research/`: market and competitor research.
 - `strategy/`: spec audits (`spec-audit.md` is current; `spec-audit-v1.md`
@@ -84,12 +84,12 @@ Backend API routes (all in `app/app/api/`, all server-only):
 | `POST /api/stripe/webhook` | Stripe only (no sign-in; verified by signature) | `checkout.session.completed` -> request becomes `open`; `checkout.session.expired` -> cancelled; refunds stray payments |
 | `POST /api/stripe/connect/onboard` | Verified mechanic | Creates the mechanic's Stripe account if needed (Accounts v2: Express dashboard, recipient config, NemaGo collects fees and losses) and returns the onboarding link ("Set Up Payouts") |
 | `POST /api/stripe/connect/status` | Mechanic | Asks Stripe if payouts are enabled and saves the answer |
-| `POST /api/dispatch/complete` | Accepting mechanic | Marks the job complete and sends the mechanic's share via a Stripe transfer |
-| `POST /api/dispatch/cancel` | Driver | Cancels the request and refunds in full if it was paid |
+| `POST /api/dispatch/complete` | Accepting mechanic | After a diagnosis is recorded: marks the job complete and sends the mechanic's $80 via a Stripe transfer. Also retries a failed payout |
+| `POST /api/dispatch/cancel` | Driver | Cancels the request. Before diagnosis: full refund. After diagnosis: no refund, the mechanic is paid the $80 |
 
 Shared server code: `app/lib/stripe.ts` (Stripe client, site URL),
-`app/lib/supabase/admin.ts` (service-role client), `app/lib/fees.ts` (price and
-service-fee placeholders). Database changes: `app/supabase/payments.sql`.
+`app/lib/supabase/admin.ts` (service-role client), `app/lib/fees.ts` (the $35 / $80 / $115
+price). Database changes: `app/supabase/payments.sql`.
 
 Money rules:
 
@@ -100,8 +100,16 @@ Money rules:
   request body, and `/api/stripe/webhook` must stay public in
   `lib/supabase/middleware.ts` (Stripe has no sign-in cookie).
 - **Request status flow:** `awaiting_payment` -> `open` (paid, visible to
-  mechanics) -> `accepted` -> `completed`; or `cancelled`. Not `searching` or
-  `matched`: "matched" means a mechanic accepted.
+  mechanics) -> `accepted` -> `diagnosed` (mechanic recorded a diagnosis) ->
+  `completed`; or `cancelled`. Not `searching` or `matched`: "matched" means a
+  mechanic accepted.
+- **Price: $115.00 = $35.00 NemaGo Platform Dispatch Fee + $80.00 Conditional
+  Diagnostic Fee** (from the Discovery Report; constants in `lib/fees.ts`). Cancel
+  before `diagnosed` -> full refund. At `diagnosed`, whether the mechanic marks it
+  complete or the driver cancels: $35 stays in NemaGo's balance and $80 is
+  transferred to the mechanic, no refund. Completion is only allowed from
+  `diagnosed`. These rules live in the `admin_begin_cancel` and
+  `admin_begin_completion` functions in `app/supabase/pricing-diagnostic.sql`.
 - **Separate charges and transfers:** the driver pays NemaGo's platform account;
   on completion NemaGo transfers the mechanic's share. NemaGo's fee stays in the
   platform balance. Use idempotency keys on every Stripe write so retries never
@@ -116,8 +124,8 @@ Money rules:
   liability acknowledgement" accepted once in Stripe (Settings -> Connect ->
   Platform profile). "Managed Risk" (Stripe collects losses) does not work for
   this flow.
-- The service-fee percentage and the US country code are labeled placeholders
-  (open decisions in the PRD). Don't treat them as final.
+- The US country code is a labeled placeholder (open decision in the PRD). The
+  $35 / $80 split is decided; open items are listed in the PRD.
 
 ## Data handling
 

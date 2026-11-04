@@ -2,8 +2,14 @@
 
 import { useState } from "react";
 import { LiveStatus } from "@/components/LiveStatus";
+import { PriceBreakdown } from "@/components/PriceBreakdown";
 import { WAIT_SECONDS, contactOf, friendlyError, postJson, secondsSince } from "@/lib/dispatch";
-import { SERVICE_PRICE_CENTS, formatCents } from "@/lib/fees";
+import {
+  DIAGNOSTIC_FEE_CENTS,
+  DISPATCH_FEE_CENTS,
+  SERVICE_PRICE_CENTS,
+  formatCents,
+} from "@/lib/fees";
 import { useDispatchFeed, useNow } from "@/lib/useDispatchFeed";
 
 // The driver's screen: confirm and pay for a dispatch, then watch it update live.
@@ -19,7 +25,11 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
 
   // A driver can only have one request in progress at a time.
   const active = requests.find(
-    (r) => r.status === "awaiting_payment" || r.status === "open" || r.status === "accepted",
+    (r) =>
+      r.status === "awaiting_payment" ||
+      r.status === "open" ||
+      r.status === "accepted" ||
+      r.status === "diagnosed",
   );
   const last = active ? undefined : requests[0];
   const price = formatCents(SERVICE_PRICE_CENTS);
@@ -43,7 +53,19 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
     goToPayment({ problem, area, address });
   }
 
-  async function cancel(id: string) {
+  async function cancel(id: string, needsConfirm = false) {
+    if (
+      needsConfirm &&
+      !window.confirm(
+        "The mechanic has already recorded a diagnosis, so cancelling now is NOT refunded. " +
+          formatCents(DIAGNOSTIC_FEE_CENTS) +
+          " goes to the mechanic and " +
+          formatCents(DISPATCH_FEE_CENTS) +
+          " stays with NemaGo. Cancel anyway?",
+      )
+    ) {
+      return;
+    }
     setBusy(true);
     setMessage("");
     const { ok, data } = await postJson("/api/dispatch/cancel", { requestId: id });
@@ -82,7 +104,11 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
       {!active && (
         <form className="card form" onSubmit={confirmDispatch}>
           {last?.status === "completed" && (
-            <div className="notice notice-success">Your last job was completed. Thank you!</div>
+            <div className="notice notice-success">
+              Your last job was completed. {formatCents(SERVICE_PRICE_CENTS)} was charged:{" "}
+              {formatCents(DISPATCH_FEE_CENTS)} dispatch fee + {formatCents(DIAGNOSTIC_FEE_CENTS)}{" "}
+              diagnostic fee. Thank you!
+            </div>
           )}
           {last?.status === "cancelled" && last.refund_status === "refunded" && (
             <div className="notice notice-success">
@@ -99,7 +125,14 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
                 </button>
               </div>
             )}
-          {last?.status === "cancelled" && last.refund_status === "none" && (
+          {last?.status === "cancelled" && last.refund_status === "none" && last.diagnosis && (
+            <div className="notice notice-success">
+              Your last request was cancelled after the mechanic&rsquo;s diagnosis, so it wasn&rsquo;t
+              refunded: the mechanic received the {formatCents(DIAGNOSTIC_FEE_CENTS)} diagnostic fee and
+              NemaGo kept the {formatCents(DISPATCH_FEE_CENTS)} dispatch fee.
+            </div>
+          )}
+          {last?.status === "cancelled" && last.refund_status === "none" && !last.diagnosis && (
             <div className="notice notice-success">Your last request was cancelled.</div>
           )}
 
@@ -142,16 +175,13 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             <small className="muted">Only the mechanic who accepts your job will see this.</small>
           </label>
 
-          <div className="price-box">
-            <span>Roadside service</span>
-            <strong>{price}</strong>
-          </div>
+          <PriceBreakdown />
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? "Taking you to payment…" : "Confirm Dispatch · " + price}
           </button>
           <small className="muted">
-            You&rsquo;ll pay on Stripe&rsquo;s secure page. Full refund if you cancel before the job is
-            done. Test mode: use card 4242 4242 4242 4242, any future date and any 3-digit code.
+            You&rsquo;ll pay {price} on Stripe&rsquo;s secure page. Test mode: use card 4242 4242 4242
+            4242, any future date and any 3-digit code.
           </small>
         </form>
       )}
@@ -168,6 +198,7 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             <br />
             <strong>Area:</strong> {active.area}
           </p>
+          <PriceBreakdown />
           <button
             type="button"
             className="btn btn-primary"
@@ -194,7 +225,8 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             <br />
             <strong>Area:</strong> {active.area}
             <br />
-            <strong>Paid:</strong> {formatCents(active.price_cents ?? SERVICE_PRICE_CENTS)}
+            <strong>Paid:</strong> {formatCents(active.price_cents ?? SERVICE_PRICE_CENTS)} (
+            {formatCents(DISPATCH_FEE_CENTS)} dispatch fee + {formatCents(DIAGNOSTIC_FEE_CENTS)} diagnostic fee)
           </p>
           {secondsSince(active.opened_at ?? active.created_at, now) > WAIT_SECONDS && (
             <div className="notice notice-error">
@@ -221,10 +253,41 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             <br />
             <strong>Meeting you at:</strong> {contactOf(active)?.address}
             <br />
-            <strong>Paid:</strong> {formatCents(active.price_cents ?? SERVICE_PRICE_CENTS)}
+            <strong>Paid:</strong> {formatCents(active.price_cents ?? SERVICE_PRICE_CENTS)} (
+            {formatCents(DISPATCH_FEE_CENTS)} dispatch fee + {formatCents(DIAGNOSTIC_FEE_CENTS)} diagnostic fee)
+          </p>
+          <p className="muted small">
+            You can cancel for a full refund until the mechanic records a diagnosis.
           </p>
           <button type="button" className="btn btn-google" onClick={() => cancel(active.id)} disabled={busy}>
             {busy ? "Cancelling…" : "Cancel and get a full refund"}
+          </button>
+        </div>
+      )}
+
+      {active?.status === "diagnosed" && (
+        <div className="card job-matched">
+          <span className="badge badge-success">Diagnosis recorded</span>
+          <h2 className="pay-title">{active.mechanic_first_name ?? "Your mechanic"} found the problem</h2>
+          <p className="diagnosis-text">{active.diagnosis}</p>
+          <p className="small">
+            <strong>Original problem:</strong> {active.problem}
+            <br />
+            <strong>Paid:</strong> {formatCents(active.price_cents ?? SERVICE_PRICE_CENTS)} (
+            {formatCents(DISPATCH_FEE_CENTS)} dispatch fee + {formatCents(DIAGNOSTIC_FEE_CENTS)} diagnostic fee)
+          </p>
+          <p className="muted small">
+            The diagnosis is done, so this payment is no longer refundable. The{" "}
+            {formatCents(DIAGNOSTIC_FEE_CENTS)} goes to your mechanic and {formatCents(DISPATCH_FEE_CENTS)}{" "}
+            to NemaGo, whether the job is completed or cancelled.
+          </p>
+          <button
+            type="button"
+            className="btn btn-google"
+            onClick={() => cancel(active.id, true)}
+            disabled={busy}
+          >
+            {busy ? "Cancelling…" : "Cancel (no refund)"}
           </button>
         </div>
       )}

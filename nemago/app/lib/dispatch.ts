@@ -14,10 +14,13 @@ export type DispatchRequest = {
   // awaiting_payment: saved, not paid, hidden from mechanics
   // open: paid, visible to mechanics
   // accepted: a mechanic took it
-  status: "awaiting_payment" | "open" | "accepted" | "completed" | "cancelled";
+  // diagnosed: the mechanic recorded a diagnosis (no refund from here on)
+  status: "awaiting_payment" | "open" | "accepted" | "diagnosed" | "completed" | "cancelled";
   created_at: string;
   opened_at: string | null;
   accepted_at: string | null;
+  diagnosis: string | null;
+  diagnosed_at: string | null;
   eta_minutes: number | null;
   mechanic_first_name: string | null;
   price_cents: number | null;
@@ -33,7 +36,7 @@ export type DispatchRequest = {
 
 // Everything both screens need. Row Level Security decides which rows come back.
 export const REQUEST_COLUMNS =
-  "id, problem, area, status, created_at, opened_at, accepted_at, eta_minutes, mechanic_first_name, price_cents, platform_fee_cents, payout_status, refund_status, dispatch_contacts(address, driver_first_name)";
+  "id, problem, area, status, created_at, opened_at, accepted_at, diagnosis, diagnosed_at, eta_minutes, mechanic_first_name, price_cents, platform_fee_cents, payout_status, refund_status, dispatch_contacts(address, driver_first_name)";
 
 export function contactOf(request: DispatchRequest) {
   const c = request.dispatch_contacts;
@@ -81,7 +84,9 @@ export function friendlyError(code: unknown) {
     case "cannot_cancel":
       return "This request can't be cancelled anymore.";
     case "cannot_complete":
-      return "This job can't be marked complete.";
+      return "This job can't be marked complete yet. Record your diagnosis first.";
+    case "cannot_diagnose":
+      return "A diagnosis can't be recorded for this job right now.";
     case "not_awaiting_payment":
       return "This request has already been paid or cancelled. Refresh the page.";
     case "payments_not_configured":

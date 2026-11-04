@@ -12,17 +12,95 @@ import {
   timeAgo,
   type DispatchRequest,
 } from "@/lib/dispatch";
-import { formatCents, mechanicShareCents } from "@/lib/fees";
+import {
+  DIAGNOSTIC_FEE_LABEL,
+  DISPATCH_FEE_LABEL,
+  formatCents,
+  mechanicShareCents,
+} from "@/lib/fees";
 import { useDispatchFeed, useNow } from "@/lib/useDispatchFeed";
 
-// What the mechanic will be paid for a job, e.g. "$91.37". Empty if the price isn't known.
+// What the mechanic receives for a job, e.g. "$80.00". Empty if the price isn't known.
 function earnings(r: DispatchRequest) {
   if (r.price_cents === null || r.platform_fee_cents === null) return null;
   return formatCents(mechanicShareCents(r.price_cents, r.platform_fee_cents));
 }
 
-// The mechanic's screen: new paid requests pop up live, one tap accepts, and
-// finishing the job pays them.
+// "$115.00 job: $35.00 NemaGo Platform Dispatch Fee + $80.00 Conditional Diagnostic Fee"
+function breakdown(r: DispatchRequest) {
+  if (r.price_cents === null || r.platform_fee_cents === null) return null;
+  return (
+    formatCents(r.price_cents) +
+    " job: " +
+    formatCents(r.platform_fee_cents) +
+    " " +
+    DISPATCH_FEE_LABEL +
+    " (NemaGo) + " +
+    formatCents(mechanicShareCents(r.price_cents, r.platform_fee_cents)) +
+    " " +
+    DIAGNOSTIC_FEE_LABEL +
+    " (you)"
+  );
+}
+
+// The "diagnostic entry": the mechanic writes down what they found. After this
+// the job can be completed, and the driver can no longer get a refund.
+function DiagnosisForm({
+  requestId,
+  disabled,
+  onSaved,
+  onError,
+}: {
+  requestId: string;
+  disabled: boolean;
+  onSaved: () => Promise<void>;
+  onError: (message: string) => void;
+}) {
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (
+      !window.confirm(
+        "Once you record a diagnosis, the driver can no longer get a refund. Record it only after you have diagnosed the car. Continue?",
+      )
+    ) {
+      return;
+    }
+    setSaving(true);
+    const { error } = await createClient().rpc("record_diagnosis", {
+      p_request_id: requestId,
+      p_diagnosis: text,
+    });
+    if (error) onError(friendlyError(error.message));
+    await onSaved();
+    setSaving(false);
+  }
+
+  return (
+    <form className="form" onSubmit={save}>
+      <label>
+        Diagnostic entry: what did you find?
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="For example: cracked upper radiator hose leaking coolant"
+          minLength={3}
+          maxLength={1000}
+          rows={3}
+          required
+        />
+      </label>
+      <button type="submit" className="btn btn-primary" disabled={disabled || saving}>
+        {saving ? "Saving…" : "Record diagnosis"}
+      </button>
+    </form>
+  );
+}
+
+// The mechanic's screen: new paid requests pop up live, one tap accepts, they
+// record a diagnosis on site, and finishing the job pays them.
 export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
   const { requests, loaded, failed, live, reload } = useDispatchFeed();
   const now = useNow();
@@ -121,8 +199,13 @@ export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
           <strong>{r.problem}</strong>
           <p className="muted small">
             {r.area} · {timeAgo(r.opened_at ?? r.created_at, now)}
-            {earnings(r) && <> · You earn {earnings(r)}</>}
           </p>
+          {earnings(r) && (
+            <p className="small">
+              <strong>You receive {earnings(r)}</strong> ({DIAGNOSTIC_FEE_LABEL}) once you record a
+              diagnosis.
+            </p>
+          )}
           <button
             type="button"
             className="btn btn-primary"
@@ -148,12 +231,42 @@ export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
                 <strong>Problem:</strong> {r.problem}
                 <br />
                 <strong>Go to:</strong> {contactOf(r)?.address}
-                {earnings(r) && (
+                {breakdown(r) && (
                   <>
                     <br />
-                    <strong>You&rsquo;ll be paid:</strong> {earnings(r)} when you mark it complete
+                    <strong>Pay:</strong> {breakdown(r)}
                   </>
                 )}
+              </p>
+              <p className="muted small">
+                The driver can still cancel for a full refund until you record a diagnosis.
+              </p>
+              <DiagnosisForm
+                requestId={r.id}
+                disabled={busyId !== ""}
+                onSaved={reload}
+                onError={setMessage}
+              />
+            </div>
+          );
+        }
+        if (r.status === "diagnosed") {
+          return (
+            <div key={r.id} className="card job-matched">
+              <span className="badge badge-success">Diagnosis recorded</span>
+              <p className="diagnosis-text">{r.diagnosis}</p>
+              <p className="small">
+                <strong>Go to:</strong> {contactOf(r)?.address}
+                {breakdown(r) && (
+                  <>
+                    <br />
+                    <strong>Pay:</strong> {breakdown(r)}
+                  </>
+                )}
+              </p>
+              <p className="muted small">
+                You&rsquo;re paid {earnings(r)} when you mark the job complete, or if the driver
+                cancels.
               </p>
               <button
                 type="button"
@@ -166,10 +279,19 @@ export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
             </div>
           );
         }
-        if (r.status === "completed") {
+        if (r.status === "completed" || (r.status === "cancelled" && r.diagnosis)) {
+          const cancelled = r.status === "cancelled";
           return (
             <div key={r.id} className="card">
-              <span className="badge badge-success">Completed</span>
+              <span className={cancelled ? "badge" : "badge badge-success"}>
+                {cancelled ? "Cancelled by the driver after your diagnosis" : "Completed"}
+              </span>
+              {cancelled && (
+                <p className="muted small">
+                  The driver cancelled after your diagnosis, so you&rsquo;re still paid the{" "}
+                  {DIAGNOSTIC_FEE_LABEL}.
+                </p>
+              )}
               {r.payout_status === "paid_out" && (
                 <p className="small">
                   <strong>{earnings(r)}</strong> was sent to your Stripe account. Stripe pays it to your
@@ -179,7 +301,9 @@ export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
               {r.payout_status === "pending" && <p className="small">Sending your payout…</p>}
               {r.payout_status === "failed" && (
                 <>
-                  <p className="small">The payout hit a problem. Your job is still marked complete.</p>
+                  <p className="small">
+                    The payout hit a problem. {cancelled ? "" : "Your job is still marked complete."}
+                  </p>
                   <button
                     type="button"
                     className="btn btn-primary"
@@ -196,7 +320,7 @@ export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
         return (
           <div key={r.id} className="card">
             <span className="badge">Cancelled by the driver</span>
-            <p className="muted small">{r.area}. No action needed, and nothing is owed.</p>
+            <p className="muted small">{r.area}. They cancelled before a diagnosis, so nothing is owed.</p>
           </div>
         );
       })}

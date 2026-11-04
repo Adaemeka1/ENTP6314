@@ -35,6 +35,7 @@ const SAFE_ERRORS = [
   "not_awaiting_payment",
   "cannot_cancel",
   "cannot_complete",
+  "cannot_diagnose",
   "not_paid",
   "payouts_not_set_up",
 ];

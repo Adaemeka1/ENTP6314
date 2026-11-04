@@ -40,7 +40,7 @@ This copies them, in the right order, to your clipboard (run it from this folder
 then paste into **SQL Editor -> New query** and click **Run**:
 
 ```bash
-(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql; echo "notify pgrst, 'reload schema';") | pbcopy
+(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql pricing-diagnostic.sql; echo "notify pgrst, 'reload schema';") | pbcopy
 ```
 
 `retire-old-dispatch.sql` removes an older NemaGo dispatch design if one is in the
@@ -60,6 +60,8 @@ the same thing one file at a time.
 5. Do the same for the fourth file, `supabase/payments.sql`. It adds the unpaid
    request state, the private payment records, and the server-only money
    functions. Run it after `dispatch.sql`.
+   Then run `supabase/pricing-diagnostic.sql`: it adds the diagnostic-entry step
+   and the $35 / $80 refund and payout rules. Run it after `payments.sql`.
 6. Open **Project Settings -> API** and copy the **Project URL** and the
    **anon public** key.
 7. In this folder, copy `.env.example` to `.env.local` and paste them in.

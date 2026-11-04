@@ -1,6 +1,9 @@
 import {
+  DIAGNOSTIC_FEE_CENTS,
+  DIAGNOSTIC_FEE_LABEL,
+  DISPATCH_FEE_CENTS,
+  DISPATCH_FEE_LABEL,
   MECHANIC_SUBSCRIPTION_DOLLARS_PER_MONTH,
-  PLATFORM_FEE_PERCENT,
   SERVICE_PRICE_CENTS,
   formatCents,
   formatDollars,
@@ -10,29 +13,39 @@ import {
 
 // Shows who pays what. Prices come from lib/fees.ts.
 export function FeeTable() {
-  const fee = platformFeeCents(SERVICE_PRICE_CENTS);
   return (
     <div className="card">
       <strong>Who pays what</strong>
       <div className="fee-row">
         <span>
-          <strong>Drivers</strong>
+          <strong>Drivers pay</strong>
           <br />
-          <span className="muted small">Flat price for each roadside dispatch, paid by card</span>
+          <span className="muted small">
+            {DISPATCH_FEE_LABEL} {formatCents(DISPATCH_FEE_CENTS)} + {DIAGNOSTIC_FEE_LABEL}{" "}
+            {formatCents(DIAGNOSTIC_FEE_CENTS)}, by card
+          </span>
         </span>
         <span className="fee-amount">{formatCents(SERVICE_PRICE_CENTS)}</span>
       </div>
       <div className="fee-row">
         <span>
-          <strong>Mechanics earn</strong>
+          <strong>Mechanics receive</strong>
           <br />
           <span className="muted small">
-            Their share of each job, after the {PLATFORM_FEE_PERCENT}% NemaGo service fee
+            The {DIAGNOSTIC_FEE_LABEL} for each job, once a diagnosis is recorded
           </span>
         </span>
         <span className="fee-amount">
-          {formatCents(mechanicShareCents(SERVICE_PRICE_CENTS, fee))}
+          {formatCents(mechanicShareCents(SERVICE_PRICE_CENTS, platformFeeCents()))}
         </span>
+      </div>
+      <div className="fee-row">
+        <span>
+          <strong>NemaGo keeps</strong>
+          <br />
+          <span className="muted small">The {DISPATCH_FEE_LABEL}</span>
+        </span>
+        <span className="fee-amount">{formatCents(platformFeeCents())}</span>
       </div>
       <div className="fee-row">
         <span>
@@ -44,7 +57,6 @@ export function FeeTable() {
           {formatDollars(MECHANIC_SUBSCRIPTION_DOLLARS_PER_MONTH)}/mo
         </span>
       </div>
-      <p className="muted small">Placeholder prices while the business model is still being decided.</p>
     </div>
   );
 }

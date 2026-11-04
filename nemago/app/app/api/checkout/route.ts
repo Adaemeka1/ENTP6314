@@ -1,5 +1,12 @@
 import { getSignedInUser, json, notConfigured, readJson, safeError } from "@/lib/api";
-import { SERVICE_PRICE_CENTS, platformFeeCents } from "@/lib/fees";
+import {
+  DIAGNOSTIC_FEE_CENTS,
+  DIAGNOSTIC_FEE_LABEL,
+  DISPATCH_FEE_CENTS,
+  DISPATCH_FEE_LABEL,
+  SERVICE_PRICE_CENTS,
+  platformFeeCents,
+} from "@/lib/fees";
 import { getStripe, siteUrl } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -56,22 +63,35 @@ export async function POST(request: Request) {
   }
 
   const price = SERVICE_PRICE_CENTS;
-  const fee = platformFeeCents(price);
+  const fee = platformFeeCents();
   const site = siteUrl(request);
 
   let session;
   try {
     session = await stripe.checkout.sessions.create({
       mode: "payment",
+      // Two lines, so the driver sees exactly what the $115.00 is made of.
       line_items: [
         {
           quantity: 1,
           price_data: {
             currency: "usd",
-            unit_amount: price,
+            unit_amount: DISPATCH_FEE_CENTS,
             product_data: {
-              name: "Roadside service",
-              description: "On-demand mobile mechanic dispatch (test mode)",
+              name: DISPATCH_FEE_LABEL,
+              description: "Finding and dispatching a verified mobile mechanic to you",
+            },
+          },
+        },
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: DIAGNOSTIC_FEE_CENTS,
+            product_data: {
+              name: DIAGNOSTIC_FEE_LABEL,
+              description:
+                "Covers the mechanic's on-site diagnostic labor, or is credited toward the repair. Refunded in full if you cancel before a diagnosis is recorded.",
             },
           },
         },

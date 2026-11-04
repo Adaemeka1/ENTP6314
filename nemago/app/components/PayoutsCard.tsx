@@ -60,8 +60,9 @@ export function PayoutsCard({
         <>
           <span className="badge badge-success">Payouts are set up</span>
           <p className="muted">
-            You&rsquo;ll be paid your share of each job when you mark it complete. Stripe sends the money
-            to your bank on its normal schedule.
+            You&rsquo;ll receive the $80.00 diagnostic fee for each job once you record a diagnosis and
+            mark it complete, or if the driver cancels after your diagnosis. Stripe sends the money to your
+            bank on its normal schedule.
           </p>
         </>
       ) : (

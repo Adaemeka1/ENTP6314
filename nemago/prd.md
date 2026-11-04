@@ -142,15 +142,22 @@ real time from acceptance to arrival.
   provider.
 
 **Build steps (Stripe Connect, test mode only until a go-live decision).**
-Approved 2026-10-29. The pilot uses one simple rule: the driver is charged when
-they confirm, and refunded in full if they cancel before the job is complete.
-The hold-then-capture flow above is a later refinement.
+Approved 2026-10-29. Pricing updated 2026-10-30 to match the Discovery Report's
+unit economics. The pilot uses one simple rule: the driver is charged the full
+amount when they confirm, and money moves again only on the rules below.
+
+**The price: $115.00 total**, shown to the driver as two lines:
+
+| Line | Amount | What it is |
+|---|---|---|
+| NemaGo Platform Dispatch Fee | $35.00 | NemaGo's fee for finding and dispatching a mechanic |
+| Conditional Diagnostic Fee | $80.00 | Covers the mechanic's on-site diagnostic labor, or is credited toward the repair |
 
 1. **F5a. Driver checkout.** "Confirm Dispatch" creates a request in the
-   `awaiting_payment` state and a real Stripe Checkout Session for the roadside
-   service price (placeholder: $107.50). The driver is sent to Stripe's hosted,
-   mobile-friendly payment page. The price is set on the server, never by the
-   browser. Mechanics cannot see the request yet.
+   `awaiting_payment` state and a real Stripe Checkout Session for $115.00 with
+   the two fee lines above. The driver is sent to Stripe's hosted, mobile-friendly
+   payment page. The price is set on the server, never by the browser. Mechanics
+   cannot see the request yet.
 2. **F5b. Payment webhook.** A signed Stripe webhook is the only thing that
    marks a request paid. On a successful payment the request moves
    `awaiting_payment` -> `open`, which makes it appear on mechanics' live job
@@ -159,20 +166,26 @@ The hold-then-capture flow above is a later refinement.
 3. **F5c. Mechanic payout setup.** A verified mechanic taps "Set Up Payouts" and
    is sent to Stripe-hosted Express onboarding to link a bank account or debit
    card. A mechanic cannot accept jobs until Stripe says payouts are enabled.
-4. **F5d. Split payment on completion.** When the mechanic marks the job
-   complete, NemaGo transfers the mechanic's share (price minus the NemaGo
-   service fee) to their Stripe account. The service fee stays in the NemaGo
-   platform balance, which pays out to the NemaGo business bank account. The
-   fee percentage is a placeholder (see Open decisions).
-5. **F5e. Cancellation refunds.** If the driver cancels after paying and before
-   completion, they are refunded in full automatically. No mechanic is paid for
-   a cancelled job.
+4. **F5d. Diagnostic entry.** After accepting, the mechanic records their
+   diagnosis (a short written finding). The request moves `accepted` ->
+   `diagnosed`, and the driver sees the diagnosis. This is the point where the
+   diagnostic work is considered done.
+5. **F5e. Conversion rules.** Once a diagnosis has been recorded, the $115.00 is
+   no longer refundable. If the mechanic marks the job **complete**, or the
+   driver **cancels**, the result is the same: the **$35.00 dispatch fee stays in
+   the NemaGo platform balance** and the **$80.00 diagnostic fee is transferred
+   to the mechanic**. A mechanic can only mark a job complete after a diagnosis
+   has been recorded.
+6. **F5f. Cancellation before diagnostic entry.** If the driver cancels at any
+   point before a diagnosis is recorded, they are refunded the full $115.00
+   automatically and no mechanic is paid.
 
 **Done means:** a driver can complete a job end-to-end without paying outside
 the app, a paid request reaches mechanics only after Stripe confirms the
-payment, no request can be charged an amount the server did not set, a cancelled
-paid request is refunded without staff action, and the mechanic is paid without
-any manual step.
+payment, no request can be charged an amount the server did not set, a request
+cancelled before diagnostic entry is refunded without staff action, and after
+diagnostic entry the $35.00 stays with NemaGo and the $80.00 reaches the
+mechanic without any manual step.
 
 ### F6. Diagnostic and predictive-maintenance engine (foundational)
 
@@ -310,6 +323,7 @@ mechanic is on site**. NemaGo's position against them rests on three things:
 | Mechanic phone, certification (name, number, expiry), service area (city, zip, radius) | Stored. Service area is a fixed area, not GPS | Verification and matching |
 | Mechanic subscription status and renewal date | Stored (placeholder: the business model is still an open decision) | Platform subscription |
 | Mechanic live location | Used live while on shift; not kept afterward | Matching and tracking |
+| Mechanic's diagnosis note and when it was recorded | Stored with the job record. Kept when a job is cancelled after diagnostic entry, as the basis for keeping the fee | Job history, fee disputes and the flywheel dataset |
 | Payment and payout records (Stripe checkout session, payment, refund and transfer IDs; amounts; payment, refund and payout status) | Stored, in a table only the server can read. IDs only, never card details | Payments, refunds and payouts |
 | Mechanic's Stripe account ID and whether payouts are enabled | Stored. Bank and identity details are held by Stripe, not NemaGo | Mechanic payouts |
 | Card numbers | **Not stored** — held by the payment provider | Payments |
@@ -359,18 +373,26 @@ These are not yet answered and need a team decision:
 - **Price guarantee backstop:** who absorbs the cost when a job takes longer
   than book time (mechanic, NemaGo, or split).
 - **Insurance minimums** for mechanics, and NemaGo's own liability cover.
-- **Service fee split:** the percentage of each job NemaGo keeps. The app uses a
-  clearly labeled placeholder (15%) until this is decided. It must cover
-  Stripe's own processing fee, which comes out of NemaGo's share.
+- **Service fee split (decided 2026-10-30, Discovery Report):** a fixed
+  $35.00 NemaGo Platform Dispatch Fee and an $80.00 Conditional Diagnostic Fee
+  per job, $115.00 in total. Stripe's own processing fee (about 2.9% + 30 cents,
+  roughly $3.64 on $115.00) comes out of NemaGo's share, and Stripe does not
+  return it on refunds.
+- **Refund of the dispatch fee before diagnosis:** the pilot refunds the full
+  $115.00 if the driver cancels before a diagnosis is recorded. Whether the $35.00
+  dispatch fee should instead be kept once a mechanic has accepted is not decided.
+- **Misuse of diagnostic entry:** a mechanic could record a diagnosis without
+  doing the work, which would remove the driver's refund. The pilot has no
+  safeguard beyond the diagnosis being visible to the driver. Options for later:
+  a driver confirmation step, a minimum time on site, or in-app disputes (F5).
+- **Repairs beyond the $80.00:** how a repair's own price is quoted, approved
+  and paid (PRD F2) is not built. For now the job's only charge is the $115.00.
 - **Loss liability:** because NemaGo collects the payment and pays mechanics
   afterward, NemaGo is responsible for losses from refunds and chargebacks that
   happen after a mechanic has been paid (Stripe requires this acknowledgement
   for this payment design). The acknowledgement is accepted in the Stripe test
   account; the business should decide before taking real money how much risk
   to carry, and whether to hold back part of a payout.
-- **Cancellation policy:** the pilot refunds drivers in full if they cancel at
-  any point before the job is complete. Whether a late cancellation costs a
-  call-out fee is not decided.
 - **Payments country and go-live:** payments are built for the US and Stripe
   test mode only. Taking real money needs a separate go-live decision, a
   finished Stripe account activation, and an answer on mechanic classification.

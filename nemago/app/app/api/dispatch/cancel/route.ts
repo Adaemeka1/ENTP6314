@@ -1,11 +1,15 @@
 import { getSignedInUser, json, notConfigured, readJson, safeError } from "@/lib/api";
+import { payMechanic, type PayoutJob } from "@/lib/payout";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-// The driver cancels. If they already paid, they get a full refund, and nobody
-// is paid out. Calling this again retries a refund that failed.
+// The driver cancels.
+//   Before a diagnosis is recorded: they get a full refund and nobody is paid.
+//   After a diagnosis is recorded:  NO refund. The mechanic is paid the $80.00
+//   diagnostic fee and NemaGo keeps the $35.00 dispatch fee.
+// Calling this again retries a refund or a payout that failed.
 export async function POST(request: Request) {
   const admin = createAdminClient();
   if (!admin) return notConfigured();
@@ -25,9 +29,11 @@ export async function POST(request: Request) {
 
   const info = data as {
     was_paid: boolean;
+    refund?: boolean;
     unpaid_sessions?: string[];
     session_id?: string;
     payment_intent_id?: string;
+    payout?: PayoutJob;
   };
   const stripe = getStripe();
 
@@ -48,6 +54,15 @@ export async function POST(request: Request) {
 
   if (!stripe) return notConfigured();
 
+  // A diagnosis was already recorded: no refund, pay the mechanic.
+  if (info.payout) {
+    // The driver's cancellation is done either way. If the transfer fails it is
+    // retried later (the mechanic can tap "Try payout again").
+    const paid = await payMechanic(stripe, admin, requestId, info.payout);
+    return json({ ok: true, refunded: false, mechanic_paid: paid });
+  }
+
+  // No diagnosis yet: full refund.
   try {
     const refund = await stripe.refunds.create(
       { payment_intent: info.payment_intent_id!, metadata: { dispatch_request_id: requestId } },
