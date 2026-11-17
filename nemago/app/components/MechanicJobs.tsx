@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LiveStatus } from "@/components/LiveStatus";
+import { MatchBreakdown } from "@/components/MatchBreakdown";
 import { createClient } from "@/lib/supabase/client";
 import {
   ETA_CHOICES,
@@ -18,6 +19,7 @@ import {
   formatCents,
   mechanicShareCents,
 } from "@/lib/fees";
+import { toPublic, scoreMechanic, type Candidate } from "@/lib/match";
 import { useDispatchFeed, useNow } from "@/lib/useDispatchFeed";
 
 // What the mechanic receives for a job, e.g. "$80.00". Empty if the price isn't known.
@@ -101,7 +103,7 @@ function DiagnosisForm({
 
 // The mechanic's screen: new paid requests pop up live, one tap accepts, they
 // record a diagnosis on site, and finishing the job pays them.
-export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
+export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; me: Candidate }) {
   const { requests, loaded, failed, live, reload } = useDispatchFeed();
   const now = useNow();
 
@@ -109,7 +111,13 @@ export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
   const [busyId, setBusyId] = useState("");
   const [message, setMessage] = useState("");
 
-  const open = requests.filter((r) => r.status === "open");
+  // Smart Dispatch Match: how well THIS mechanic fits each open job. Best fit first.
+  const open = requests
+    .filter((r) => r.status === "open")
+    .map((r) => ({ r, match: scoreMechanic(me, r.problem, r.id) }))
+    .sort((a, b) => b.match.score - a.match.score)
+    .map(({ r }) => r);
+  const matchFor = (r: DispatchRequest) => toPublic(scoreMechanic(me, r.problem, r.id));
   const mine = requests.filter((r) => r.status !== "open").slice(0, 5);
 
   // Notice requests that appear after the screen first loaded, and flash an alert.
@@ -206,6 +214,7 @@ export function MechanicJobs({ payoutsEnabled }: { payoutsEnabled: boolean }) {
               diagnosis.
             </p>
           )}
+          <MatchBreakdown match={matchFor(r)} intro="Why this job fits you" />
           <button
             type="button"
             className="btn btn-primary"

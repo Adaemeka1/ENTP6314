@@ -18,8 +18,9 @@ root [`../CLAUDE.md`](../CLAUDE.md), which still governs the unrelated
   So far it has sign-in (F0), driver/mechanic tables, a simulated payment
   screen and a keyword-based Car Helper chat (these are demos, not the real
   F1/F5 features), plus a first cut of F3 dispatch: live driver requests and
-  mechanic accept (Supabase Realtime), and Stripe Connect payments (F5a to F5f
-  in the PRD). Setup steps are in `app/README.md`.
+  mechanic accept (Supabase Realtime), Stripe Connect payments (F5a to F5f in the
+  PRD), and a visible Smart Dispatch Match (F3 first cut). Setup steps are in
+  `app/README.md`.
 - `research/`: market and competitor research.
 - `strategy/`: spec audits (`spec-audit.md` is current; `spec-audit-v1.md`
   audited the earlier prototype PRD).
@@ -85,6 +86,7 @@ Backend API routes (all in `app/app/api/`, all server-only):
 | `POST /api/stripe/connect/onboard` | Verified mechanic | Creates the mechanic's Stripe account if needed (Accounts v2: Express dashboard, recipient config, NemaGo collects fees and losses) and returns the onboarding link ("Set Up Payouts") |
 | `POST /api/stripe/connect/status` | Mechanic | Asks Stripe if payouts are enabled and saves the answer |
 | `POST /api/dispatch/complete` | Accepting mechanic | After a diagnosis is recorded: marks the job complete and sends the mechanic's $80 via a Stripe transfer. Also retries a failed payout |
+| `POST /api/match` | Driver (own request only) | Read-only. Scores and ranks eligible mechanics (waiting: top 3, no names; accepted: that mechanic's breakdown). Returns 503 `match_unavailable` if `match.sql` has not been run, and the screen then hides the panel |
 | `POST /api/dispatch/cancel` | Driver | Cancels the request. Before diagnosis: full refund. After diagnosis: no refund, the mechanic is paid the $80 |
 
 Shared server code: `app/lib/stripe.ts` (Stripe client, site URL),
@@ -126,6 +128,37 @@ Money rules:
   this flow.
 - The US country code is a labeled placeholder (open decision in the PRD). The
   $35 / $80 split is decided; open items are listed in the PRD.
+
+### Smart Dispatch Match (PRD F3)
+
+- **Code:** `app/lib/match.ts` (pure scoring, no imports, used in the browser and on the
+  server), `app/components/MatchBreakdown.tsx` and `MatchPanel.tsx` (display),
+  `app/app/api/match/route.ts` (driver's ranking), `app/supabase/match.sql`
+  (`admin_match_candidates()`, service-role only).
+- **Five weighted factors:** proximity & live ETA 30, ASE skill match 25, shift
+  availability 20, parts readiness 10, quality 15. These weights are **placeholders**
+  (PRD open decision) and must always add up to 100.
+- **Real vs. demo:** only ASE certification and eligibility (verified + payouts
+  enabled) are real. ETA, shift, parts, rating and acceptance rate are simulated by
+  `demoSignals()` and must stay labelled "Demo signals" on screen until real data
+  exists. Do not present them as real.
+- **Privacy:** never send a driver's browser a mechanic's id, phone, certification
+  number or last name. Before acceptance mechanics are "Mechanic 1, 2, 3"; after,
+  only the first name. Scores are calculated on demand and not stored.
+- The match is **display-only**: it must not change who can see or accept a job, or
+  touch any price, payment or payout.
+
+## Design system
+
+One stylesheet, `app/app/globals.css`, for every screen. Calm, high-trust, readable
+in bright outdoor glare: deep slate navy `#0F172A` (header, headings, text),
+soft off-white cards `#F8FAFC` with 2px borders, emerald badges for "Verified" and
+"Price locked", amber `#F97316` for the main action. **Action buttons use navy text
+on amber** (white on that orange fails contrast in sunlight). Base text is 17px, tap
+targets are at least 54px, and colour pairs must keep WCAG AA contrast. Components rely
+on the class names in this file, so change styles in the stylesheet and rename
+classes only with the components. Stripe's payment page is Stripe's own and cannot be
+restyled.
 
 ## Data handling
 

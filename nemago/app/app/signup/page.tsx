@@ -29,7 +29,7 @@ export default async function SignupPage({
   }
 
   return (
-    <AuthCard title="Create your account">
+    <AuthCard title="Create your account" subtitle="It takes about a minute.">
       {error && <Notice kind="error">{error}</Notice>}
 
       {/* Google users pick driver or mechanic right after signing in. */}

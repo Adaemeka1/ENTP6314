@@ -16,7 +16,7 @@ export default async function MechanicJobsPage() {
   const supabase = await createClient();
   const { data: mechanic } = await supabase
     .from("mechanics")
-    .select("payouts_enabled")
+    .select("payouts_enabled, certification_name, certification_expires_on")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -25,9 +25,19 @@ export default async function MechanicJobsPage() {
       <Link href="/mechanic" className="back-link">
         ← Back
       </Link>
-      <h1>Job requests</h1>
-      <p className="muted">Paid requests from drivers show up here live.</p>
-      <MechanicJobs payoutsEnabled={Boolean(mechanic?.payouts_enabled)} />
+      <span className="badge badge-success badge-block">Verified mechanic</span>
+      <h1 style={{ marginTop: 10 }}>Job requests</h1>
+      <p className="muted">
+        Paid, price-locked jobs from drivers appear here live. The best fit for you is listed first.
+      </p>
+      <MechanicJobs
+        payoutsEnabled={Boolean(mechanic?.payouts_enabled)}
+        me={{
+          id: user.id,
+          certificationName: mechanic?.certification_name ?? null,
+          certificationExpiresOn: mechanic?.certification_expires_on ?? null,
+        }}
+      />
     </AppShell>
   );
 }

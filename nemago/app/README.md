@@ -40,7 +40,7 @@ This copies them, in the right order, to your clipboard (run it from this folder
 then paste into **SQL Editor -> New query** and click **Run**:
 
 ```bash
-(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql pricing-diagnostic.sql; echo "notify pgrst, 'reload schema';") | pbcopy
+(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql pricing-diagnostic.sql match.sql; echo "notify pgrst, 'reload schema';") | pbcopy
 ```
 
 `retire-old-dispatch.sql` removes an older NemaGo dispatch design if one is in the
@@ -62,6 +62,9 @@ the same thing one file at a time.
    functions. Run it after `dispatch.sql`.
    Then run `supabase/pricing-diagnostic.sql`: it adds the diagnostic-entry step
    and the $35 / $80 refund and payout rules. Run it after `payments.sql`.
+   Then run `supabase/match.sql`: it lets the server list eligible mechanics for the
+   Smart Dispatch Match panel. It changes no tables. If you skip it, the match panel
+   on the driver screen simply doesn't show.
 6. Open **Project Settings -> API** and copy the **Project URL** and the
    **anon public** key.
 7. In this folder, copy `.env.example` to `.env.local` and paste them in.

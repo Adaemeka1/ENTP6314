@@ -17,7 +17,7 @@ export default async function LoginPage({
   const error = errorMessage(params.error);
 
   return (
-    <AuthCard title="Sign in" subtitle="Drivers and mechanics both sign in here.">
+    <AuthCard title="Welcome back" subtitle="Drivers and mechanics both sign in here.">
       {params.signed_out && <Notice kind="success">You’re signed out.</Notice>}
       {error && <Notice kind="error">{error}</Notice>}
 

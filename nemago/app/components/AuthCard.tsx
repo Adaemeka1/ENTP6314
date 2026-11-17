@@ -22,12 +22,26 @@ export function AuthCard({
 }) {
   return (
     <main className="auth-page">
-      <div className="auth-card">
+      <div className="auth-brand">
         <Logo />
+        <p className="auth-tagline">A verified mechanic. A locked price. Right where your car is.</p>
+      </div>
+      <div className="auth-card">
         <h1>{title}</h1>
         {subtitle && <p className="muted">{subtitle}</p>}
         {children}
       </div>
+      <ul className="trust-row" aria-label="Why drivers trust NemaGo">
+        <li>
+          <span className="badge badge-success">Verified mechanics</span>
+        </li>
+        <li>
+          <span className="badge badge-success">Price locked upfront</span>
+        </li>
+        <li>
+          <span className="badge badge-success">Secure payment</span>
+        </li>
+      </ul>
     </main>
   );
 }

@@ -21,7 +21,25 @@ export default async function DriverRequest({
         ← Back
       </Link>
       <h1>Request a mechanic</h1>
-      <p className="muted">Tell us what&rsquo;s wrong, pay securely, and a verified mechanic can accept your job.</p>
+      <p className="muted">
+        Take a breath, you&rsquo;re in good hands. Tell us what&rsquo;s wrong, and a verified mechanic can
+        come to you at a price that&rsquo;s locked before you pay.
+      </p>
+      <ul className="trust-row" style={{ justifyContent: "flex-start", margin: "0 0 12px" }}>
+        <li>
+          <span className="badge badge-success">Verified mechanics</span>
+        </li>
+        <li>
+          <span className="badge badge-success">Price locked</span>
+        </li>
+        <li>
+          <span className="badge badge-success">Secure payment</span>
+        </li>
+      </ul>
+      <p className="safety-note">
+        If you&rsquo;re in danger, move away from traffic and call 911 first. We&rsquo;ll be here when
+        you&rsquo;re safe.
+      </p>
       <DriverDispatch checkout={checkout} />
     </AppShell>
   );

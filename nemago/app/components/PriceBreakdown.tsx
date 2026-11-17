@@ -11,6 +11,10 @@ import {
 export function PriceBreakdown() {
   return (
     <div className="price-box price-breakdown">
+      <div className="price-lock">
+        <span className="badge badge-success">Price locked</span>
+        <span className="muted small">You never pay more than this without approving it.</span>
+      </div>
       <div className="price-line">
         <span>{DISPATCH_FEE_LABEL}</span>
         <strong>{formatCents(DISPATCH_FEE_CENTS)}</strong>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LiveStatus } from "@/components/LiveStatus";
+import { MatchPanel } from "@/components/MatchPanel";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
 import { WAIT_SECONDS, contactOf, friendlyError, postJson, secondsSince } from "@/lib/dispatch";
 import {
@@ -228,6 +229,7 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             <strong>Paid:</strong> {formatCents(active.price_cents ?? SERVICE_PRICE_CENTS)} (
             {formatCents(DISPATCH_FEE_CENTS)} dispatch fee + {formatCents(DIAGNOSTIC_FEE_CENTS)} diagnostic fee)
           </p>
+          <MatchPanel requestId={active.id} status={active.status} etaMinutes={active.eta_minutes} />
           {secondsSince(active.opened_at ?? active.created_at, now) > WAIT_SECONDS && (
             <div className="notice notice-error">
               No mechanic has accepted yet. You can keep waiting, or cancel for a full refund and call a
@@ -256,6 +258,7 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             <strong>Paid:</strong> {formatCents(active.price_cents ?? SERVICE_PRICE_CENTS)} (
             {formatCents(DISPATCH_FEE_CENTS)} dispatch fee + {formatCents(DIAGNOSTIC_FEE_CENTS)} diagnostic fee)
           </p>
+          <MatchPanel requestId={active.id} status={active.status} etaMinutes={active.eta_minutes} />
           <p className="muted small">
             You can cancel for a full refund until the mechanic records a diagnosis.
           </p>

@@ -117,6 +117,33 @@ offer widens in radius and the driver is told the new ETA.
 
 Mechanics set their availability, service area and job types in their own app.
 
+**Smart Dispatch Match (first cut, built 2026-11-17).** The matching engine is
+visible in the product: every eligible mechanic is scored out of 100 on five
+weighted factors, and the score is explained on screen. Eligible means verified by
+staff (F7) with payouts set up (F5c).
+
+| Factor | Placeholder weight | Based on |
+|---|---|---|
+| Proximity & live ETA | 30 | Minutes away; once a mechanic accepts, the ETA they commit to |
+| ASE skill match | 25 | The mechanic's saved ASE certification against the kind of problem described. Expired certification earns no credit |
+| Active shift availability | 20 | Whether the mechanic is on shift now |
+| Local parts sourcing readiness | 10 | Whether they carry or can source the likely parts |
+| Quality score | 15 | Driver rating and acceptance rate |
+
+- **Real vs. simulated today.** Only the ASE certification and eligibility are real.
+  NemaGo has no live location (F4), shift schedule, parts inventory or ratings yet, so
+  those four factors use clearly labelled "Demo signals": fixed pseudo-random values
+  that stay the same for the same mechanic and job. They must be replaced with real
+  data before launch.
+- **Where it shows.** The driver sees the ranked candidates while waiting (no names
+  or identifiers) and, after a mechanic accepts, that mechanic's breakdown with a line
+  like "96% Match, 11 mins away, ASE Certified, Parts Ready". The mechanic sees the
+  breakdown on each incoming job card, with the best fit listed first.
+- **What it does not do yet.** The score does not decide who is offered a job: every
+  eligible mechanic still sees every paid request and the first to accept wins. It
+  does not widen the search radius. Scores are calculated each time they are shown and
+  are not stored.
+
 **Done means:** a booked job reaches an accepted, qualified mechanic with no
 human dispatcher involved, and the driver always sees either an ETA or an
 honest "no mechanic available, here's what to do instead" message.
@@ -326,6 +353,7 @@ mechanic is on site**. NemaGo's position against them rests on three things:
 | Mechanic's diagnosis note and when it was recorded | Stored with the job record. Kept when a job is cancelled after diagnostic entry, as the basis for keeping the fee | Job history, fee disputes and the flywheel dataset |
 | Payment and payout records (Stripe checkout session, payment, refund and transfer IDs; amounts; payment, refund and payout status) | Stored, in a table only the server can read. IDs only, never card details | Payments, refunds and payouts |
 | Mechanic's Stripe account ID and whether payouts are enabled | Stored. Bank and identity details are held by Stripe, not NemaGo | Mechanic payouts |
+| Smart Dispatch Match scores and their factor breakdown | **Not stored.** Calculated each time they are shown. Drivers never receive mechanic ids, phone numbers or certification numbers; the accepting mechanic's first name is shown only after they accept | Showing how a match was made |
 | Card numbers | **Not stored** — held by the payment provider | Payments |
 
 Drivers can export or delete their data. Training uses job data with personal
@@ -373,6 +401,12 @@ These are not yet answered and need a team decision:
 - **Price guarantee backstop:** who absorbs the cost when a job takes longer
   than book time (mechanic, NemaGo, or split).
 - **Insurance minimums** for mechanics, and NemaGo's own liability cover.
+- **Match weights and rules (placeholders, set 2026-11-17):** the 30 / 25 / 20 / 10 / 15
+  split above, how an ASE specialty maps to a type of problem, and whether the score
+  should decide who is offered a job (and in what order) or only be shown.
+- **Real data for the matching factors:** where live location and ETA (F4), shift
+  availability, parts inventory, and ratings and acceptance rate will come from. Until
+  then those factors are simulated and labelled as demo signals.
 - **Service fee split (decided 2026-10-30, Discovery Report):** a fixed
   $35.00 NemaGo Platform Dispatch Fee and an $80.00 Conditional Diagnostic Fee
   per job, $115.00 in total. Stripe's own processing fee (about 2.9% + 30 cents,
