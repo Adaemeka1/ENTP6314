@@ -31,7 +31,10 @@ export default async function MechanicHome({
             <li>Insurance</li>
             <li>Background check</li>
           </ol>
-          <p className="muted">Uploading documents is coming soon (F7). We’ll email you when you’re approved.</p>
+          <p className="muted">
+            Our team reviews every application. Once your checks are complete and your account is marked
+            verified, job requests will appear here.
+          </p>
         </div>
         <Link href="/mechanic/billing" className="card card-link">
           <strong>Billing</strong>
@@ -57,10 +60,6 @@ export default async function MechanicHome({
         <strong>Billing</strong>
         <p className="muted">Your monthly platform subscription.</p>
       </Link>
-      <div className="card card-disabled">
-        <strong>Jobs near you</strong>
-        <p className="muted">Pre-priced, pre-diagnosed jobs will show up here. Coming soon (F3).</p>
-      </div>
     </AppShell>
   );
 }
