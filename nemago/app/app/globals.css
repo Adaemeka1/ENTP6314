@@ -60,6 +60,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 a {
   color: var(--navy);
   font-weight: 600;
@@ -941,6 +945,323 @@ input[readonly] {
   color: var(--action-ink);
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+/* Guided triage, photo drop zone and saved vehicles */
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip-on,
+.chip-on:hover {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+
+.triage-form {
+  gap: 0;
+}
+
+.triage-form > .btn {
+  margin-top: 20px;
+}
+
+.triage-step {
+  margin-top: 14px;
+}
+
+.step-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.step-title .muted {
+  margin: 0;
+  font-weight: 400;
+}
+
+.step-number {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.dropzone-frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  max-width: 100%;
+  overflow: hidden;
+  border: 2px dashed var(--border-strong);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.dropzone-over {
+  border-color: var(--action);
+  background: var(--action-soft);
+}
+
+.dropzone-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dropzone-empty {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  padding: 16px;
+  text-align: center;
+}
+
+.dropzone-empty .muted {
+  margin: 0;
+}
+
+.dropzone-icon {
+  font-size: 2.2rem;
+}
+
+.frame-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(249, 115, 22, 0.9);
+  pointer-events: none;
+}
+
+.frame-tl {
+  top: 14px;
+  left: 14px;
+  border-right: 0;
+  border-bottom: 0;
+  border-top-left-radius: 8px;
+}
+
+.frame-tr {
+  top: 14px;
+  right: 14px;
+  border-left: 0;
+  border-bottom: 0;
+  border-top-right-radius: 8px;
+}
+
+.frame-bl {
+  bottom: 14px;
+  left: 14px;
+  border-right: 0;
+  border-top: 0;
+  border-bottom-left-radius: 8px;
+}
+
+.frame-br {
+  bottom: 14px;
+  right: 14px;
+  border-left: 0;
+  border-top: 0;
+  border-bottom-right-radius: 8px;
+}
+
+.frame-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78);
+  color: var(--white);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.dropzone-actions,
+.vehicle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.dropzone-actions .btn,
+.vehicle-actions .btn {
+  flex: 1 1 150px;
+}
+
+.triage-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.triage-head .pay-title {
+  margin: 0;
+}
+
+.triage-head .badge {
+  margin-top: 0;
+}
+
+.safety-banner {
+  margin-top: 16px;
+  padding: 16px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+}
+
+.safety-banner p {
+  margin: 0;
+}
+
+.safety-banner-label {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.safety-banner-detail {
+  margin-top: 6px;
+}
+
+.safety-banner-safe {
+  background: var(--emerald-soft);
+  border-color: var(--emerald-line);
+  color: var(--emerald-ink);
+}
+
+.safety-banner-dont_drive {
+  background: var(--action-soft);
+  border-color: #fdba74;
+  color: var(--action-ink);
+}
+
+.safety-banner-move_now {
+  background: var(--error-soft);
+  border-color: #fca5a5;
+  color: #7f1d1d;
+}
+
+.triage-facts {
+  display: grid;
+  gap: 16px;
+  margin: 18px 0 0;
+}
+
+.triage-facts dt {
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.triage-facts dd {
+  margin: 4px 0 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.triage-reason {
+  display: block;
+  margin: 8px 0 0;
+  font-weight: 400;
+}
+
+.triage-steps ul,
+.triage-used {
+  margin: 6px 0 0;
+  padding-left: 22px;
+}
+
+.triage-steps li + li,
+.triage-used li + li {
+  margin-top: 6px;
+}
+
+.triage-steps {
+  margin-top: 14px;
+}
+
+.triage-result .match-demo-note {
+  margin-top: 14px;
+}
+
+.triage-price-note {
+  text-align: center;
+}
+
+.result-again {
+  margin-top: 14px;
+}
+
+.triage-note {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--white);
+}
+
+.triage-note p {
+  margin: 0;
+}
+
+.vehicle-name {
+  font-size: 1.2rem;
+  color: var(--navy);
+}
+
+.vehicle-head p {
+  margin: 2px 0 0;
+}
+
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: 12px;
+}
+
+.vehicle-grid input,
+.form input,
+.form select,
+.form textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+.vehicle-edit {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.vehicle-edit label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+  color: var(--navy);
 }
 
 @media (max-width: 400px) {

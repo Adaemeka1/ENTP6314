@@ -3,17 +3,29 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { DriverDispatch } from "@/components/DriverDispatch";
 import { requireProfile } from "@/lib/profile";
+import { createClient } from "@/lib/supabase/server";
+import type { Vehicle } from "@/lib/vehicles";
 
 export const metadata = { title: "Request a mechanic · NemaGo" };
 
 export default async function DriverRequest({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout?: string }>;
+  searchParams: Promise<{ checkout?: string; from?: string; vehicle?: string }>;
 }) {
   const { profile } = await requireProfile();
   if (profile.role !== "driver") redirect("/");
-  const { checkout } = await searchParams;
+  const { checkout, from, vehicle } = await searchParams;
+
+  // The driver's own saved cars (Row Level Security shows only theirs). If the
+  // vehicles table isn't set up yet this is just empty and the picker is hidden.
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vehicles")
+    .select("id, year, make, model, mileage")
+    .order("created_at", { ascending: true });
+  const vehicles = (data ?? []) as Vehicle[];
+  const initialVehicleId = vehicles.some((v) => v.id === vehicle) ? (vehicle as string) : null;
 
   return (
     <AppShell>
@@ -40,7 +52,12 @@ export default async function DriverRequest({
         If you&rsquo;re in danger, move away from traffic and call 911 first. We&rsquo;ll be here when
         you&rsquo;re safe.
       </p>
-      <DriverDispatch checkout={checkout} />
+      <DriverDispatch
+        checkout={checkout}
+        vehicles={vehicles}
+        initialVehicleId={initialVehicleId}
+        fromTriage={from === "triage"}
+      />
     </AppShell>
   );
 }

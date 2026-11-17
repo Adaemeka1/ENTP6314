@@ -15,6 +15,8 @@ Car Helper chat. The old clickable demo is `../index.html` and is separate.
 | `/driver` | Driver home (placeholder until F1) |
 | `/driver/chat` | Car Helper: type what's wrong, get a plain-English answer |
 | `/mechanic` | "Verification pending" until staff approve the mechanic (F7) |
+| `/driver/vehicles` | Driver saves cars (year, make, model, mileage), updates mileage, removes a car |
+| `/driver/triage` | "Report a car problem": photo drop zone, warning lights, symptoms, description, then a demo triage result and a button that books a mechanic |
 | `/driver/request` | Driver confirms a dispatch and pays through Stripe Checkout, then watches the request update live |
 | `/mechanic/jobs` | Verified mechanics see new PAID requests live, accept one (first to accept wins), and mark it complete to get paid |
 | `/mechanic/payouts` | "Set Up Payouts": Stripe Express onboarding so a mechanic can be paid |
@@ -40,7 +42,7 @@ This copies them, in the right order, to your clipboard (run it from this folder
 then paste into **SQL Editor -> New query** and click **Run**:
 
 ```bash
-(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql pricing-diagnostic.sql match.sql; echo "notify pgrst, 'reload schema';") | pbcopy
+(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql pricing-diagnostic.sql match.sql vehicles.sql; echo "notify pgrst, 'reload schema';") | pbcopy
 ```
 
 `retire-old-dispatch.sql` removes an older NemaGo dispatch design if one is in the
@@ -65,6 +67,9 @@ the same thing one file at a time.
    Then run `supabase/match.sql`: it lets the server list eligible mechanics for the
    Smart Dispatch Match panel. It changes no tables. If you skip it, the match panel
    on the driver screen simply doesn't show.
+   Then run `supabase/vehicles.sql`: it creates the `vehicles` table (year, make, model,
+   mileage) with Row Level Security so each driver sees only their own cars. If you skip
+   it, the "My vehicles" page says vehicles aren't set up yet, and the car pickers hide.
 6. Open **Project Settings -> API** and copy the **Project URL** and the
    **anon public** key.
 7. In this folder, copy `.env.example` to `.env.local` and paste them in.

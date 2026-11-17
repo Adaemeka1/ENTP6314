@@ -79,6 +79,28 @@ job (e.g. "replace upper radiator hose"). Low-confidence cases are routed to a
 **diagnostic visit** job type instead of a specific repair, so the system never
 quotes a repair it can't stand behind.
 
+**First cut built (2026-11-20).** The driver can save vehicles (year, make, model and
+current mileage; up to 10) at "My vehicles", and report a problem through a guided
+screen: a photo drop zone with a framing guide, a warning-light picker, a symptom
+picker and a short description. It returns a structured Triage Result: likely cause,
+confidence level, safety call (safe to drive / don't drive / move to safety now) and
+recommended service, then a "Book Certified Mechanic" button that carries the vehicle
+and the triage into the request. What is real and what is not:
+
+- **Demo triage, not a vision model.** No AI provider is connected. The result comes
+  from a small fixed set of rules over the chosen warning lights, symptoms and
+  description, and is labelled "Demo triage" on screen. Low-confidence results are
+  routed to a diagnostic visit instead of a specific repair, as required below.
+- **Photos stay on the driver's device.** The photo is only previewed back to the driver
+  and is not uploaded, analysed or stored, so no consent flow is needed yet.
+- **Vehicle and triage travel as text.** The request has no vehicle column, so the car
+  and a one-line triage summary are written into the request description the mechanic
+  sees (for example "2018 Honda Civic, 63,500 mi. White smoke under the hood (Triage:
+  Coolant leak or overheating, High confidence)"). A proper vehicle link on the request
+  is a later step.
+- **Not built yet:** VIN scan, engine, voice description, OBD fault codes, and the
+  "mileage over time" history (only the current mileage is stored).
+
 **Done means:** on a labeled test set of past jobs, the top-1 repair job
 matches the mechanic's confirmed repair in at least an agreed share of cases
 (target set before launch), and every low-confidence case is routed to a
@@ -340,8 +362,8 @@ mechanic is on site**. NemaGo's position against them rests on three things:
 | Driver account (name, phone, email) | Stored | Account and job history |
 | Sign-in: role (driver/mechanic), password | Role stored. Password never stored by NemaGo; Supabase Auth keeps only a one-way hash. Google users have no password with us | Sign-in and access |
 | Session tokens | In the user's browser cookies only; deleted on sign-out | Keeping people signed in |
-| Vehicles (VIN, year/make/model, mileage over time) | Stored | Pricing, reminders, prediction |
-| Symptom photos, descriptions, warning lights | Stored with consent for training; otherwise deleted after job closes | Triage and training |
+| Vehicles (year, make, model, current mileage; up to 10 per driver. VIN and mileage history come later) | Stored. Visible only to the driver who saved them (Row Level Security). Deleted when the driver removes the car or deletes their account | Pricing, reminders, prediction |
+| Symptom photos, descriptions, warning lights | Stored with consent for training; otherwise deleted after job closes. **Today's guided triage does not store or upload photos at all** (the photo stays on the driver's device), and the triage answers are not stored; only the one-line triage summary inside the request description is | Triage and training |
 | OBD fault codes | Stored | Triage and training |
 | Dispatch request (problem description, general area, street address, status, accepting mechanic's first name and ETA) | Stored. The description is erased when the driver cancels, unless they consent to training use. The street address is visible only to the driver and the mechanic who accepted. No GPS is stored | Matching and job history |
 | Job records (diagnosis predicted vs. confirmed, parts, labor time, price quoted vs. final, ratings) | Stored | The flywheel dataset |
@@ -401,6 +423,12 @@ These are not yet answered and need a team decision:
 - **Price guarantee backstop:** who absorbs the cost when a job takes longer
   than book time (mechanic, NemaGo, or split).
 - **Insurance minimums** for mechanics, and NemaGo's own liability cover.
+- **Vision provider for photo triage:** which AI provider, what it costs, and the consent
+  and storage rules for symptom photos (the PRD requires driver consent before photos are
+  kept for training). Adding any AI provider needs the project owner's approval first.
+  Until then triage is the labelled demo.
+- **Triage thresholds and rules:** how confidence levels are decided, and what accuracy
+  the triage must reach before it can quote a specific repair instead of a diagnostic visit.
 - **Match weights and rules (placeholders, set 2026-11-17):** the 30 / 25 / 20 / 10 / 15
   split above, how an ASE specialty maps to a type of problem, and whether the score
   should decide who is offered a job (and in what order) or only be shown.

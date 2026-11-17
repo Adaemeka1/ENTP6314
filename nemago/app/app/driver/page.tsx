@@ -27,14 +27,16 @@ export default async function DriverHome({
         <p className="muted">Type what&rsquo;s wrong and get a plain-English answer.</p>
       </Link>
 
-      <div className="card card-disabled">
+      <Link href="/driver/triage" className="card card-link">
         <strong>Report a car problem</strong>
-        <p className="muted">Photos, warning lights or a fault code. Coming soon (F1).</p>
-      </div>
-      <div className="card card-disabled">
+        <p className="muted">
+          Add a photo, pick a warning light or symptom, and get a plain-English triage and safety call.
+        </p>
+      </Link>
+      <Link href="/driver/vehicles" className="card card-link">
         <strong>My vehicles</strong>
-        <p className="muted">Add your car by VIN or year, make and model. Coming soon (F1).</p>
-      </div>
+        <p className="muted">Save your car (year, make, model and mileage) so every request starts faster.</p>
+      </Link>
     </AppShell>
   );
 }

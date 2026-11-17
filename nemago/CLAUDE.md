@@ -19,8 +19,8 @@ root [`../CLAUDE.md`](../CLAUDE.md), which still governs the unrelated
   screen and a keyword-based Car Helper chat (these are demos, not the real
   F1/F5 features), plus a first cut of F3 dispatch: live driver requests and
   mechanic accept (Supabase Realtime), Stripe Connect payments (F5a to F5f in the
-  PRD), and a visible Smart Dispatch Match (F3 first cut). Setup steps are in
-  `app/README.md`.
+  PRD), a visible Smart Dispatch Match (F3 first cut), and an F1 first cut: saved
+  vehicles and a guided demo triage. Setup steps are in `app/README.md`.
 - `research/`: market and competitor research.
 - `strategy/`: spec audits (`spec-audit.md` is current; `spec-audit-v1.md`
   audited the earlier prototype PRD).
@@ -87,6 +87,7 @@ Backend API routes (all in `app/app/api/`, all server-only):
 | `POST /api/stripe/connect/status` | Mechanic | Asks Stripe if payouts are enabled and saves the answer |
 | `POST /api/dispatch/complete` | Accepting mechanic | After a diagnosis is recorded: marks the job complete and sends the mechanic's $80 via a Stripe transfer. Also retries a failed payout |
 | `POST /api/match` | Driver (own request only) | Read-only. Scores and ranks eligible mechanics (waiting: top 3, no names; accepted: that mechanic's breakdown). Returns 503 `match_unavailable` if `match.sql` has not been run, and the screen then hides the panel |
+| `POST /api/triage` | Driver | Read-only. Validates the picked warning lights, symptoms and description and returns the **demo** triage result (cause, confidence, safety call, service). No AI provider, no photos, no database writes |
 | `POST /api/dispatch/cancel` | Driver | Cancels the request. Before diagnosis: full refund. After diagnosis: no refund, the mechanic is paid the $80 |
 
 Shared server code: `app/lib/stripe.ts` (Stripe client, site URL),
@@ -147,6 +148,29 @@ Money rules:
   only the first name. Scores are calculated on demand and not stored.
 - The match is **display-only**: it must not change who can see or accept a job, or
   touch any price, payment or payout.
+
+### Vehicles and guided triage (PRD F1)
+
+- **Pages:** `/driver/vehicles` (add, view, update mileage, remove) and `/driver/triage`
+  (guided intake and result). Code: `lib/vehicles.ts` and `lib/triage.ts` (pure, no
+  imports), `components/VehicleManager.tsx`, `TriageFlow.tsx`, `TriageResultCard.tsx`,
+  `PhotoDropZone.tsx`, `app/api/triage/route.ts`. Database: `app/supabase/vehicles.sql`.
+- **`vehicles` table:** drivers read, add, edit (year, make, model, mileage only) and delete
+  only their own rows through Row Level Security, up to 10 each. Mechanics and the server
+  key cannot read it. The driver's browser talks to it directly with their own sign-in.
+- **The triage is a DEMO.** `lib/triage.ts` is rules, not an AI vision model, and every
+  result must stay labelled "Demo triage". **Do not add an AI/vision provider or key without
+  the owner's explicit approval** (new major service). When one is approved it plugs in
+  behind `/api/triage` with the same request and response shape.
+- **Photos never leave the device.** `PhotoDropZone` only previews the file. Do not upload
+  or store photos until a consent and storage flow exists (see the PRD data table).
+- **The handoff to a request** goes through `sessionStorage` (`nemago.triage`, expires in an
+  hour), never the URL, so no symptom text ends up in an address. The request screen then
+  writes the car and a one-line triage into the request description with `composeProblem`
+  (max 500 characters). `/api/checkout`, the webhook and every money rule are unchanged:
+  the vehicle is only text in the existing description, not a new column.
+- Triage must route low-confidence results to a **diagnostic visit**, never a specific
+  repair (PRD F1).
 
 ## Design system
 

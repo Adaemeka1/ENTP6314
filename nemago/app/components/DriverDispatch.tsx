@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { LiveStatus } from "@/components/LiveStatus";
 import { MatchPanel } from "@/components/MatchPanel";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
@@ -11,10 +12,26 @@ import {
   SERVICE_PRICE_CENTS,
   formatCents,
 } from "@/lib/fees";
+import {
+  TRIAGE_HANDOFF_KEY,
+  TRIAGE_HANDOFF_MAX_AGE_MS,
+  type TriageHandoff,
+} from "@/lib/triage";
+import { composeProblem, formatMileage, formatVehicle, type Vehicle } from "@/lib/vehicles";
 import { useDispatchFeed, useNow } from "@/lib/useDispatchFeed";
 
 // The driver's screen: confirm and pay for a dispatch, then watch it update live.
-export function DriverDispatch({ checkout }: { checkout?: string }) {
+export function DriverDispatch({
+  checkout,
+  vehicles = [],
+  initialVehicleId = null,
+  fromTriage = false,
+}: {
+  checkout?: string;
+  vehicles?: Vehicle[];
+  initialVehicleId?: string | null;
+  fromTriage?: boolean;
+}) {
   const { requests, loaded, failed, live, reload } = useDispatchFeed();
   const now = useNow();
 
@@ -23,6 +40,30 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
   const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [vehicleId, setVehicleId] = useState(initialVehicleId ?? "");
+  const [triage, setTriage] = useState<TriageHandoff["triage"] | null>(null);
+
+  // Coming from "Report a car problem": fill in the description, the car and the
+  // triage summary. The note lives in this browser tab only and expires in an hour.
+  useEffect(() => {
+    if (!fromTriage) return;
+    try {
+      const raw = sessionStorage.getItem(TRIAGE_HANDOFF_KEY);
+      if (!raw) return;
+      const handoff = JSON.parse(raw) as TriageHandoff;
+      if (Date.now() - handoff.createdAt > TRIAGE_HANDOFF_MAX_AGE_MS) return;
+      setProblem(String(handoff.description ?? "").slice(0, 300));
+      setTriage(handoff.triage ?? null);
+      if (handoff.vehicleId && vehicles.some((v) => v.id === handoff.vehicleId)) {
+        setVehicleId(handoff.vehicleId);
+      }
+    } catch {
+      // Unreadable note: just show the normal empty form.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromTriage]);
+
+  const vehicle = vehicles.find((v) => v.id === vehicleId) ?? null;
 
   // A driver can only have one request in progress at a time.
   const active = requests.find(
@@ -51,7 +92,12 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
 
   function confirmDispatch(e: React.FormEvent) {
     e.preventDefault();
-    goToPayment({ problem, area, address });
+    try {
+      sessionStorage.removeItem(TRIAGE_HANDOFF_KEY);
+    } catch {
+      // Nothing to clear.
+    }
+    goToPayment({ problem: composeProblem({ vehicle, description: problem, triage }), area, address });
   }
 
   async function cancel(id: string, needsConfirm = false) {
@@ -137,6 +183,40 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             <div className="notice notice-success">Your last request was cancelled.</div>
           )}
 
+          {vehicles.length > 0 ? (
+            <label>
+              Which car?
+              <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
+                <option value="">Skip for now</option>
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {formatVehicle(v)} · {formatMileage(v.mileage)}
+                  </option>
+                ))}
+              </select>
+              <small className="muted">
+                The mechanic sees your car. <Link href="/driver/vehicles">Add or edit my cars</Link>
+              </small>
+            </label>
+          ) : (
+            <p className="muted small">
+              Tip: <Link href="/driver/vehicles">save your car</Link> and the mechanic will know exactly what
+              they&rsquo;re working on.
+            </p>
+          )}
+
+          {triage && (
+            <div className="triage-note">
+              <p className="small">
+                <strong>From your triage:</strong> {triage.likelyCause} ({triage.confidence} confidence).
+                This is a demo triage, and the mechanic will confirm the real cause.
+              </p>
+              <button type="button" className="btn btn-google" onClick={() => setTriage(null)}>
+                Remove triage note
+              </button>
+            </div>
+          )}
+
           <label>
             What&rsquo;s wrong?
             <textarea
@@ -144,7 +224,7 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
               onChange={(e) => setProblem(e.target.value)}
               placeholder="For example: white smoke under the hood"
               minLength={3}
-              maxLength={500}
+              maxLength={300}
               rows={3}
               required
             />
