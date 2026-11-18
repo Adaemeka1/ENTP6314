@@ -5,11 +5,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-// The accepting mechanic marks the job complete. This is only allowed after they
-// have recorded a diagnosis. NemaGo then pays the mechanic the $80.00 diagnostic
-// fee; the $35.00 dispatch fee stays in the NemaGo balance. Calling this again
-// retries a payout that failed (also for a job the driver cancelled after the
-// diagnosis), and can never pay twice.
+// The accepting mechanic marks the job complete.
+//   Diagnosis job:    allowed after the diagnosis note. They were already paid on
+//                     arrival, so this only pays if that payout still needs a retry.
+//   Fixed-price job:  allowed after arriving. This pays their 90% of the labor.
+// Calling this again retries a payout that failed, and can never pay twice.
 export async function POST(request: Request) {
   const stripe = getStripe();
   const admin = createAdminClient();
@@ -28,6 +28,9 @@ export async function POST(request: Request) {
   });
   if (error) return json({ error: safeError(error.message) }, 409);
 
-  const paid = await payMechanic(stripe, admin, requestId, data as PayoutJob);
+  const payout = (data as { payout: PayoutJob | null }).payout;
+  if (!payout) return json({ ok: true, payout_status: "paid_out" });
+
+  const paid = await payMechanic(stripe, admin, requestId, payout);
   return paid ? json({ ok: true, payout_status: "paid_out" }) : json({ error: "payout_failed" }, 502);
 }

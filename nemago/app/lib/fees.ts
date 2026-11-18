@@ -1,30 +1,27 @@
-// The pricing engine, from the Discovery Report's unit economics. Change the
-// numbers here only and every screen, Stripe's checkout page and the server
-// update together. All amounts are in cents.
+// Fee constants. Booking prices are worked out in lib/pricing.ts. Change numbers
+// here and every screen, Stripe's checkout page and the server update together.
+// All amounts are in cents.
 
-export const DISPATCH_FEE_LABEL = "NemaGo Platform Dispatch Fee";
-export const DIAGNOSTIC_FEE_LABEL = "Conditional Diagnostic Fee";
+export const DISPATCH_FEE_LABEL = "NemaGo Dispatch Fee";
+export const DIAGNOSTIC_FEE_LABEL = "Diagnosis Fee";
 
-// NemaGo's fee. It always stays in the NemaGo platform balance once the mechanic
-// has recorded a diagnosis ($35.00).
+// NemaGo's dispatch fee ($35.00). 100% NemaGo's.
 export const DISPATCH_FEE_CENTS = 3500;
 
-// Covers the mechanic's on-site diagnostic labor, or is credited toward the
-// repair. It goes to the mechanic once a diagnosis is recorded ($80.00).
+// The diagnosis fee for a "Something Is Wrong" booking ($80.00). It is part of
+// the labor / diagnosis bucket: 90% goes to the mechanic and 10% to NemaGo.
 export const DIAGNOSTIC_FEE_CENTS = 8000;
 
-// What the driver pays when they confirm: $115.00.
+// What a diagnosis booking costs: $115.00. (Fixed-price bookings are priced in
+// lib/pricing.ts.)
 export const SERVICE_PRICE_CENTS = DISPATCH_FEE_CENTS + DIAGNOSTIC_FEE_CENTS;
 
 // Mechanic subscription. This one is still a pretend payment screen.
 export const MECHANIC_SUBSCRIPTION_DOLLARS_PER_MONTH = 20;
 
-// The fee NemaGo keeps. (A fixed amount, not a percentage.)
-export function platformFeeCents() {
-  return DISPATCH_FEE_CENTS;
-}
-
-// What the mechanic receives: the price minus NemaGo's fee ($80.00).
+// What NemaGo keeps of a job = the price minus the mechanic's payout. The
+// database stores this as `platform_fee_cents`, so the mechanic's payout is
+// always price - platform fee.
 export function mechanicShareCents(priceCents: number, feeCents: number) {
   return priceCents - feeCents;
 }

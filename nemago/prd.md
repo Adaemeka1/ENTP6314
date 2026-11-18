@@ -236,6 +236,46 @@ cancelled before diagnostic entry is refunded without staff action, and after
 diagnostic entry the $35.00 stays with NemaGo and the $80.00 reaches the
 mechanic without any manual step.
 
+**Update, two-path booking (build steps F5a to F5f above still describe the Stripe
+mechanics; the rules below replace the single $115 price and the "diagnosis" refund
+cut-off).**
+
+The driver first chooses **How can we help today?**
+
+- **I Know What I Need** (fixed price, no diagnosis fee). The driver enters year, make,
+  model and a VIN or license plate first. The vehicle sets a pricing tier: Tier 1 standard
+  cars 1.0x, Tier 2 trucks, full-size SUVs and vans 1.25x, Tier 3 luxury and European
+  1.5x. Ten services have a base price (oil change $85 up to pre-purchase inspection
+  $120); the driver sees "Starting at $XX" before entering a vehicle and base x tier,
+  rounded to the nearest $5, after. Checkout itemizes Tiered Labor, NemaGo Sourced Parts
+  and the $35 NemaGo Dispatch Fee.
+- **Something Is Wrong** (diagnosis). Year, make, model and VIN are required, plus a short
+  description or photo. Checkout is the $80 Diagnosis Fee + $35 NemaGo Dispatch Fee = $115.
+  The $80 is credited toward the repair if the driver approves the quote afterward.
+
+Both paths are paid in full, up front, before any mechanic is dispatched.
+
+**Parts.** NemaGo centrally sources, buys and warranties every part (commercial-grade
+OEM/equivalent, matched to the VIN). Customers never supply parts and mechanics never
+buy parts or wait for reimbursement. After payment the mechanic sees a **Parts Ready for
+Pickup** card (store and order number, pre-paid by NemaGo). In this MVP staff enter the
+store and order number by hand; there is no store integration yet.
+
+**Money split (`job_transactions`).** `dispatch_fee` 100% NemaGo ($35); `parts_total` 100%
+NemaGo; `labor_and_diag_total` 90% to the mechanic's Stripe Connect account and 10% to NemaGo.
+
+**Status flow.** `awaiting_payment` -> `open` -> `accepted` -> `arrived` -> (diagnosis jobs
+only) `diagnosed` -> `completed`, or `cancelled`. The cut-off for refunds is now the
+mechanic's "I've arrived" tap: cancel before it = full refund including the $35; after it =
+no refund. Diagnosis jobs pay the mechanic 90% of the $80 ($72) on arrival; fixed-price jobs
+pay 90% of the labor on completion.
+
+**Placeholders to confirm (open decisions):** the split of each service price between parts
+and labor (`lib/services.ts` `partsShare`), the make/model lists that decide the tier
+(`lib/vehicleTier.ts`), what a mechanic is paid when the driver cancels after arrival on a
+fixed-price job (currently 90% of the labor), and how parts are actually bought and
+verified.
+
 ### F6. Diagnostic and predictive-maintenance engine (foundational)
 
 See "The data flywheel" below. For the MVP, the engine is foundational: it

@@ -28,6 +28,31 @@ function whole(value: unknown): number | null {
   return null;
 }
 
+export type CarCheck =
+  | { ok: true; value: { year: number; make: string; model: string } }
+  | { ok: false; error: string };
+
+// Just year, make and model (used by booking, where mileage isn't asked).
+export function validateCar(
+  input: { year: unknown; make: unknown; model: unknown },
+  today: Date = new Date(),
+): CarCheck {
+  const year = whole(input.year);
+  const maxYear = today.getFullYear() + 1;
+  if (year === null || year < MIN_YEAR || year > maxYear) {
+    return { ok: false, error: `Enter a year between ${MIN_YEAR} and ${maxYear}.` };
+  }
+  const make = typeof input.make === "string" ? input.make.trim() : "";
+  if (make.length < 1 || make.length > 40 || !NAME.test(make)) {
+    return { ok: false, error: "Enter the make, for example Honda or Toyota." };
+  }
+  const model = typeof input.model === "string" ? input.model.trim() : "";
+  if (model.length < 1 || model.length > 60 || !NAME.test(model)) {
+    return { ok: false, error: "Enter the model, for example Civic or Camry." };
+  }
+  return { ok: true, value: { year, make, model } };
+}
+
 export type VehicleCheck = { ok: true; value: VehicleInput } | { ok: false; error: string };
 
 export function validateVehicle(

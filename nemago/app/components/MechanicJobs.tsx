@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { PartsPickupCard } from "@/components/booking/PartsPickupCard";
+import { bookingTitle } from "@/components/booking/ReceiptDetails";
 import { LiveStatus } from "@/components/LiveStatus";
 import { MatchBreakdown } from "@/components/MatchBreakdown";
 import { createClient } from "@/lib/supabase/client";
@@ -11,37 +13,32 @@ import {
   friendlyError,
   postJson,
   timeAgo,
+  transactionOf,
+  vehicleLabel,
   type DispatchRequest,
 } from "@/lib/dispatch";
-import {
-  DIAGNOSTIC_FEE_LABEL,
-  DISPATCH_FEE_LABEL,
-  formatCents,
-  mechanicShareCents,
-} from "@/lib/fees";
+import { DIAGNOSTIC_FEE_LABEL, DISPATCH_FEE_LABEL, formatCents, mechanicShareCents } from "@/lib/fees";
+import { MECHANIC_PERCENT } from "@/lib/pricing";
 import { toPublic, scoreMechanic, type Candidate } from "@/lib/match";
 import { useDispatchFeed, useNow } from "@/lib/useDispatchFeed";
 
-// What the mechanic receives for a job, e.g. "$80.00". Empty if the price isn't known.
+// What the mechanic receives for a job, e.g. "$72.00". Empty if the price isn't known.
 function earnings(r: DispatchRequest) {
+  const tx = transactionOf(r);
+  if (tx) return formatCents(tx.mechanic_payout_cents);
   if (r.price_cents === null || r.platform_fee_cents === null) return null;
   return formatCents(mechanicShareCents(r.price_cents, r.platform_fee_cents));
 }
 
-// "$115.00 job: $35.00 NemaGo Platform Dispatch Fee + $80.00 Conditional Diagnostic Fee"
+// "Dispatch fee $35.00 (NemaGo) · Parts $85.00 (NemaGo, pre-paid) · Labor $90.00 (you get 90%)"
 function breakdown(r: DispatchRequest) {
-  if (r.price_cents === null || r.platform_fee_cents === null) return null;
+  const tx = transactionOf(r);
+  if (!tx) return null;
+  const labor = r.booking_type === "diagnosis" ? DIAGNOSTIC_FEE_LABEL : "Labor";
   return (
-    formatCents(r.price_cents) +
-    " job: " +
-    formatCents(r.platform_fee_cents) +
-    " " +
-    DISPATCH_FEE_LABEL +
-    " (NemaGo) + " +
-    formatCents(mechanicShareCents(r.price_cents, r.platform_fee_cents)) +
-    " " +
-    DIAGNOSTIC_FEE_LABEL +
-    " (you)"
+    `${DISPATCH_FEE_LABEL} ${formatCents(tx.dispatch_fee_cents)} (NemaGo)` +
+    (tx.parts_total_cents > 0 ? ` · Parts ${formatCents(tx.parts_total_cents)} (NemaGo, pre-paid)` : "") +
+    ` · ${labor} ${formatCents(tx.labor_and_diag_total_cents)} (you get ${MECHANIC_PERCENT}%)`
   );
 }
 
@@ -65,7 +62,7 @@ function DiagnosisForm({
     e.preventDefault();
     if (
       !window.confirm(
-        "Once you record a diagnosis, the driver can no longer get a refund. Record it only after you have diagnosed the car. Continue?",
+        "Record this only after you have diagnosed the car. Continue?",
       )
     ) {
       return;
@@ -160,6 +157,23 @@ export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; 
     setBusyId("");
   }
 
+  // "I've arrived": from here the driver can no longer get a refund. On a diagnosis
+  // job the mechanic's 90% of the diagnosis fee is paid now. Safe to tap again if a payout failed.
+  async function arrive(r: DispatchRequest) {
+    if (
+      r.status === "accepted" &&
+      !window.confirm("Tap this only when you are with the car. The driver can no longer get a refund after this. Continue?")
+    ) {
+      return;
+    }
+    setBusyId(r.id);
+    setMessage("");
+    const { ok, data } = await postJson("/api/dispatch/arrive", { requestId: r.id });
+    if (!ok) setMessage(friendlyError(data.error));
+    await reload();
+    setBusyId("");
+  }
+
   if (!loaded) return <p className="muted">Loading…</p>;
 
   if (failed && requests.length === 0) {
@@ -204,14 +218,19 @@ export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; 
       {open.map((r) => (
         <div key={r.id} className={fresh.includes(r.id) ? "card job-card job-new" : "card job-card"}>
           {fresh.includes(r.id) && <span className="badge badge-new">New</span>}
-          <strong>{r.problem}</strong>
+          <strong>{bookingTitle(r)}</strong>
+          {vehicleLabel(r) && <p className="small">{vehicleLabel(r)}</p>}
           <p className="muted small">
             {r.area} · {timeAgo(r.opened_at ?? r.created_at, now)}
           </p>
+          {r.problem && r.booking_type === "diagnosis" && <p className="small">{r.problem}</p>}
           {earnings(r) && (
             <p className="small">
-              <strong>You receive {earnings(r)}</strong> ({DIAGNOSTIC_FEE_LABEL}) once you record a
-              diagnosis.
+              <strong>You receive {earnings(r)}</strong>{" "}
+              {r.booking_type === "diagnosis"
+                ? "(" + MECHANIC_PERCENT + "% of the " + DIAGNOSTIC_FEE_LABEL + ") when you arrive."
+                : "(" + MECHANIC_PERCENT + "% of the labor) when you complete the job."}{" "}
+              {r.booking_type === "fixed_price" && "Parts are bought and pre-paid by NemaGo."}
             </p>
           )}
           <MatchBreakdown match={matchFor(r)} intro="Why this job fits you" />
@@ -228,18 +247,39 @@ export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; 
 
       {mine.length > 0 && <h2 className="section-title">Your jobs</h2>}
       {mine.map((r) => {
-        if (r.status === "accepted") {
+        if (r.status === "accepted" || r.status === "arrived") {
+          const arrived = r.status === "arrived";
+          const isDiag = r.booking_type === "diagnosis";
           return (
             <div key={r.id} className="card job-matched">
-              <span className="badge badge-success">Assigned to you</span>
+              <span className="badge badge-success">{arrived ? "You've arrived" : "Assigned to you"}</span>
               <p>
-                <strong>{contactOf(r)?.driver_first_name ?? "The driver"}</strong> is expecting you in
-                about {r.eta_minutes} minutes.
+                <strong>{contactOf(r)?.driver_first_name ?? "The driver"}</strong>
+                {arrived ? " is with you." : " is expecting you in about " + r.eta_minutes + " minutes."}
               </p>
               <p className="small">
-                <strong>Problem:</strong> {r.problem}
+                <strong>Job:</strong> {bookingTitle(r)}
+                {vehicleLabel(r) && (
+                  <>
+                    <br />
+                    <strong>Vehicle:</strong> {vehicleLabel(r)}
+                  </>
+                )}
+                {(contactOf(r)?.vehicle_vin || contactOf(r)?.vehicle_plate) && (
+                  <>
+                    <br />
+                    <strong>{contactOf(r)?.vehicle_vin ? "VIN:" : "Plate:"}</strong>{" "}
+                    {contactOf(r)?.vehicle_vin ?? contactOf(r)?.vehicle_plate}
+                  </>
+                )}
                 <br />
                 <strong>Go to:</strong> {contactOf(r)?.address}
+                {r.problem && isDiag && (
+                  <>
+                    <br />
+                    <strong>Problem:</strong> {r.problem}
+                  </>
+                )}
                 {breakdown(r) && (
                   <>
                     <br />
@@ -247,15 +287,65 @@ export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; 
                   </>
                 )}
               </p>
-              <p className="muted small">
-                The driver can still cancel for a full refund until you record a diagnosis.
-              </p>
-              <DiagnosisForm
-                requestId={r.id}
-                disabled={busyId !== ""}
-                onSaved={reload}
-                onError={setMessage}
-              />
+              <PartsPickupCard request={r} />
+              {!arrived && (
+                <>
+                  <p className="muted small">
+                    The driver can still cancel for a full refund until you tap &ldquo;I&rsquo;ve arrived&rdquo;.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => arrive(r)}
+                    disabled={busyId !== ""}
+                  >
+                    {busyId === r.id ? "Saving…" : "I've arrived"}
+                  </button>
+                </>
+              )}
+              {arrived && isDiag && (
+                <>
+                  {r.payout_status === "paid_out" && (
+                    <p className="small">
+                      <strong>{earnings(r)}</strong> was sent to your Stripe account when you arrived.
+                    </p>
+                  )}
+                  {r.payout_status === "failed" && (
+                    <>
+                      <p className="small">Your arrival payout hit a problem.</p>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => arrive(r)}
+                        disabled={busyId !== ""}
+                      >
+                        {busyId === r.id ? "Trying…" : "Try payout again"}
+                      </button>
+                    </>
+                  )}
+                  <DiagnosisForm
+                    requestId={r.id}
+                    disabled={busyId !== ""}
+                    onSaved={reload}
+                    onError={setMessage}
+                  />
+                </>
+              )}
+              {arrived && !isDiag && (
+                <>
+                  <p className="muted small">
+                    Finish the service, then mark it complete. You&rsquo;re paid {earnings(r)} when you do.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => complete(r.id)}
+                    disabled={busyId !== ""}
+                  >
+                    {busyId === r.id ? "Completing…" : "Mark job complete"}
+                  </button>
+                </>
+              )}
             </div>
           );
         }
@@ -266,16 +356,10 @@ export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; 
               <p className="diagnosis-text">{r.diagnosis}</p>
               <p className="small">
                 <strong>Go to:</strong> {contactOf(r)?.address}
-                {breakdown(r) && (
-                  <>
-                    <br />
-                    <strong>Pay:</strong> {breakdown(r)}
-                  </>
-                )}
               </p>
               <p className="muted small">
-                You&rsquo;re paid {earnings(r)} when you mark the job complete, or if the driver
-                cancels.
+                Your {earnings(r)} {r.payout_status === "paid_out" ? "was already paid when you arrived." : "is paid as soon as your arrival payout goes through."}{" "}
+                Mark the visit complete once you are done.
               </p>
               <button
                 type="button"
@@ -288,17 +372,17 @@ export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; 
             </div>
           );
         }
-        if (r.status === "completed" || (r.status === "cancelled" && r.diagnosis)) {
+        if (r.status === "completed" || (r.status === "cancelled" && r.arrived_at)) {
           const cancelled = r.status === "cancelled";
           return (
             <div key={r.id} className="card">
               <span className={cancelled ? "badge" : "badge badge-success"}>
-                {cancelled ? "Cancelled by the driver after your diagnosis" : "Completed"}
+                {cancelled ? "Cancelled by the driver after you arrived" : "Completed"}
               </span>
               {cancelled && (
                 <p className="muted small">
-                  The driver cancelled after your diagnosis, so you&rsquo;re still paid the{" "}
-                  {DIAGNOSTIC_FEE_LABEL}.
+                  The driver cancelled after you arrived, so the payment is not refunded and you&rsquo;re still
+                  paid your {MECHANIC_PERCENT}%.
                 </p>
               )}
               {r.payout_status === "paid_out" && (
@@ -329,7 +413,7 @@ export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; 
         return (
           <div key={r.id} className="card">
             <span className="badge">Cancelled by the driver</span>
-            <p className="muted small">{r.area}. They cancelled before a diagnosis, so nothing is owed.</p>
+            <p className="muted small">{r.area}. They cancelled before you arrived, so nothing is owed.</p>
           </div>
         );
       })}

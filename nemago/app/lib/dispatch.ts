@@ -7,6 +7,32 @@ export const WAIT_SECONDS = 120;
 // ETA choices a mechanic can give when accepting (we have no live location yet).
 export const ETA_CHOICES = [10, 20, 30, 45, 60];
 
+type Contact = {
+  address: string;
+  driver_first_name: string | null;
+  vehicle_vin: string | null;
+  vehicle_plate: string | null;
+};
+
+// The three money buckets of a job (the job_transactions table).
+export type Transaction = {
+  dispatch_fee_cents: number;
+  parts_total_cents: number;
+  labor_and_diag_total_cents: number;
+  mechanic_payout_cents: number;
+};
+
+// The NemaGo-paid parts order a mechanic picks up (the parts_orders table).
+export type PartsOrder = {
+  status: "preparing" | "ready" | "picked_up" | "cancelled";
+  store_name: string | null;
+  store_address: string | null;
+  order_number: string | null;
+};
+
+// PostgREST returns an embedded table as an object, a list, or nothing.
+type Embedded<T> = T | T[] | null;
+
 export type DispatchRequest = {
   id: string;
   problem: string | null;
@@ -14,11 +40,13 @@ export type DispatchRequest = {
   // awaiting_payment: saved, not paid, hidden from mechanics
   // open: paid, visible to mechanics
   // accepted: a mechanic took it
-  // diagnosed: the mechanic recorded a diagnosis (no refund from here on)
-  status: "awaiting_payment" | "open" | "accepted" | "diagnosed" | "completed" | "cancelled";
+  // arrived: the mechanic is on site (no more refunds from here)
+  // diagnosed: the mechanic recorded a diagnosis (diagnosis jobs)
+  status: "awaiting_payment" | "open" | "accepted" | "arrived" | "diagnosed" | "completed" | "cancelled";
   created_at: string;
   opened_at: string | null;
   accepted_at: string | null;
+  arrived_at: string | null;
   diagnosis: string | null;
   diagnosed_at: string | null;
   eta_minutes: number | null;
@@ -27,20 +55,42 @@ export type DispatchRequest = {
   platform_fee_cents: number | null;
   payout_status: "none" | "pending" | "paid_out" | "failed";
   refund_status: "none" | "pending" | "refunded" | "failed";
-  // The street address, only visible to the driver and the mechanic who accepted.
-  dispatch_contacts:
-    | { address: string; driver_first_name: string | null }
-    | { address: string; driver_first_name: string | null }[]
-    | null;
+  booking_type: "diagnosis" | "fixed_price";
+  service_id: string | null;
+  vehicle_year: number | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_tier: 1 | 2 | 3 | null;
+  // Only the driver and the mechanic who accepted can read these three.
+  dispatch_contacts: Embedded<Contact>;
+  job_transactions: Embedded<Transaction>;
+  parts_orders: Embedded<PartsOrder>;
 };
 
 // Everything both screens need. Row Level Security decides which rows come back.
 export const REQUEST_COLUMNS =
-  "id, problem, area, status, created_at, opened_at, accepted_at, diagnosis, diagnosed_at, eta_minutes, mechanic_first_name, price_cents, platform_fee_cents, payout_status, refund_status, dispatch_contacts(address, driver_first_name)";
+  "id, problem, area, status, created_at, opened_at, accepted_at, arrived_at, diagnosis, diagnosed_at, eta_minutes, mechanic_first_name, price_cents, platform_fee_cents, payout_status, refund_status, booking_type, service_id, vehicle_year, vehicle_make, vehicle_model, vehicle_tier, dispatch_contacts(address, driver_first_name, vehicle_vin, vehicle_plate), job_transactions(dispatch_fee_cents, parts_total_cents, labor_and_diag_total_cents, mechanic_payout_cents), parts_orders(status, store_name, store_address, order_number)";
+
+function one<T>(value: Embedded<T>): T | null {
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
 
 export function contactOf(request: DispatchRequest) {
-  const c = request.dispatch_contacts;
-  return Array.isArray(c) ? (c[0] ?? null) : c;
+  return one(request.dispatch_contacts);
+}
+
+export function transactionOf(request: DispatchRequest) {
+  return one(request.job_transactions);
+}
+
+export function partsOrderOf(request: DispatchRequest) {
+  return one(request.parts_orders);
+}
+
+// "2021 Ford F-150", or "" if the request has no vehicle (older requests).
+export function vehicleLabel(request: DispatchRequest) {
+  if (!request.vehicle_year || !request.vehicle_make || !request.vehicle_model) return "";
+  return `${request.vehicle_year} ${request.vehicle_make} ${request.vehicle_model}`;
 }
 
 export function secondsSince(iso: string, now: number) {
@@ -83,6 +133,16 @@ export function friendlyError(code: unknown) {
       return "Set up payouts first, then you can accept jobs.";
     case "cannot_cancel":
       return "This request can't be cancelled anymore.";
+    case "cannot_arrive":
+      return "This job can't be marked as arrived right now.";
+    case "vin_required":
+      return "Enter your 17-character VIN to book a diagnosis.";
+    case "vehicle_id_required":
+      return "Enter your VIN or license plate.";
+    case "invalid_booking":
+      return "Choose a service and try again.";
+    case "invalid_input":
+      return "Please check your answers and try again.";
     case "cannot_complete":
       return "This job can't be marked complete yet. Record your diagnosis first.";
     case "cannot_diagnose":

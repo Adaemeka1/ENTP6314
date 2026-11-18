@@ -3,9 +3,9 @@
   - Deep slate navy (#0F172A) for trust: header, headings, text.
   - Soft off-white cards (#F8FAFC) with clear 2px borders and generous padding.
   - Emerald for "verified" and "price locked" badges.
-  - Warm amber/coral (#F97316) for the main action. Buttons use NAVY text on amber,
-    because white on this orange is hard to read in sunlight (about 2.8:1) while
-    navy on amber is easy (about 7:1).
+  - Bright sky blue (#38BDF8) for the main action. Buttons use NAVY text on sky blue
+    (about 8:1 contrast, easy in sunlight). There is deliberately NO orange anywhere.
+    To change the action colour, edit the four --action tokens below.
   Text is large, tap targets are tall, and every important colour pair passes
   WCAG AA contrast.
 */
@@ -20,10 +20,10 @@
   --border: #cbd5e1;
   --border-strong: #94a3b8;
 
-  --action: #f97316;
-  --action-hover: #ea580c;
-  --action-soft: #ffedd5;
-  --action-ink: #9a3412;
+  --action: #38bdf8;
+  --action-hover: #0ea5e9;
+  --action-soft: #e0f2fe;
+  --action-ink: #075985;
 
   --emerald: #059669;
   --emerald-soft: #d1fae5;
@@ -450,7 +450,7 @@ input[readonly] {
   border-radius: 999px;
   background: var(--action-soft);
   color: var(--action-ink);
-  border: 1.5px solid #fdba74;
+  border: 1.5px solid #7dd3fc;
   margin-top: 16px;
 }
 
@@ -867,7 +867,7 @@ input[readonly] {
 .match-tag-warn {
   background: var(--action-soft);
   color: var(--action-ink);
-  border-color: #fdba74;
+  border-color: #7dd3fc;
 }
 
 .match-details {
@@ -1043,7 +1043,7 @@ input[readonly] {
   position: absolute;
   width: 28px;
   height: 28px;
-  border: 3px solid rgba(249, 115, 22, 0.9);
+  border: 3px solid rgba(56, 189, 248, 0.95);
   pointer-events: none;
 }
 
@@ -1151,7 +1151,7 @@ input[readonly] {
 
 .safety-banner-dont_drive {
   background: var(--action-soft);
-  border-color: #fdba74;
+  border-color: #7dd3fc;
   color: var(--action-ink);
 }
 
@@ -1287,4 +1287,165 @@ input[readonly] {
     animation: none !important;
     transition: none !important;
   }
+}
+
+
+/* ---- Two-path booking (How can we help today? -> fixed-price or diagnosis) ---- */
+
+.booking {
+  display: grid;
+  gap: 4px;
+}
+
+.booking-step {
+  margin-bottom: 12px;
+}
+
+.chooser {
+  display: grid;
+  gap: 4px;
+}
+
+.chooser-title {
+  margin: 4px 0 8px;
+  font-size: 1.5rem;
+}
+
+.choice-card {
+  min-height: 54px;
+}
+
+.choice-card strong {
+  font-size: 1.2rem;
+}
+
+.choice-card p {
+  margin: 6px 0 0;
+}
+
+.chooser-hint {
+  margin-top: 8px;
+}
+
+.service-menu {
+  display: grid;
+  gap: 10px;
+}
+
+.service-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.service-card:focus-visible {
+  outline: 3px solid var(--action);
+  outline-offset: 2px;
+}
+
+.service-card-on {
+  border-color: var(--navy);
+  background: var(--action-soft);
+  box-shadow: 0 0 0 2px var(--navy);
+}
+
+.service-name {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.service-price {
+  flex: none;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.tier-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.trust-banner {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 14px;
+  border: 2px solid var(--emerald-line);
+  border-radius: 14px;
+  background: var(--emerald-soft);
+  color: var(--emerald-ink);
+}
+
+.trust-banner p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.trust-banner .badge {
+  justify-self: start;
+}
+
+.diagnosis-note,
+.disclaimer {
+  margin: 12px 0;
+}
+
+.diagnosis-note {
+  padding: 12px 14px;
+  border-left: 4px solid var(--navy);
+  border-radius: 8px;
+  background: var(--white);
+  font-weight: 600;
+}
+
+.line-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.parts-card {
+  margin: 12px 0;
+  padding: 14px;
+  border: 2px solid var(--navy);
+  border-radius: 14px;
+  background: var(--white);
+}
+
+.parts-card p {
+  margin: 8px 0 0;
+}
+
+.parts-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.badge-demo {
+  background: var(--action-soft);
+  color: var(--action-ink);
 }

@@ -80,7 +80,7 @@ export function TriageFlow({ vehicles }: { vehicles: Vehicle[] }) {
     } catch {
       // Private mode can block storage: the request screen still works, just not prefilled.
     }
-    router.push("/driver/request?from=triage" + (vehicle ? "&vehicle=" + encodeURIComponent(vehicle.id) : ""));
+    router.push("/driver/book/diagnosis?from=triage" + (vehicle ? "&vehicle=" + encodeURIComponent(vehicle.id) : ""));
   }
 
   return (

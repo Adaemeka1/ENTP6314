@@ -81,14 +81,15 @@ Backend API routes (all in `app/app/api/`, all server-only):
 
 | Path | Who calls it | What it does |
 |---|---|---|
-| `POST /api/checkout` | Driver | Creates the request (`awaiting_payment`) and a Stripe Checkout Session; returns the Stripe URL |
+| `POST /api/checkout` | Driver | Validates a booking (fixed-price or diagnosis, with the vehicle), creates the request (`awaiting_payment`) and a Stripe Checkout Session priced on the server; returns the Stripe URL. `{requestId}` alone resumes payment for an unpaid request |
 | `POST /api/stripe/webhook` | Stripe only (no sign-in; verified by signature) | `checkout.session.completed` -> request becomes `open`; `checkout.session.expired` -> cancelled; refunds stray payments |
 | `POST /api/stripe/connect/onboard` | Verified mechanic | Creates the mechanic's Stripe account if needed (Accounts v2: Express dashboard, recipient config, NemaGo collects fees and losses) and returns the onboarding link ("Set Up Payouts") |
 | `POST /api/stripe/connect/status` | Mechanic | Asks Stripe if payouts are enabled and saves the answer |
-| `POST /api/dispatch/complete` | Accepting mechanic | After a diagnosis is recorded: marks the job complete and sends the mechanic's $80 via a Stripe transfer. Also retries a failed payout |
+| `POST /api/dispatch/arrive` | Accepting mechanic | "I've arrived". Ends the driver's refund window. Diagnosis jobs: pays the mechanic 90% of the $80 now. Safe to repeat (never pays twice) |
+| `POST /api/dispatch/complete` | Accepting mechanic | Completes the job (diagnosis jobs: after the diagnosis note; fixed-price jobs: after arriving) and pays 90% of the labor via a Stripe transfer. Also retries a failed payout |
 | `POST /api/match` | Driver (own request only) | Read-only. Scores and ranks eligible mechanics (waiting: top 3, no names; accepted: that mechanic's breakdown). Returns 503 `match_unavailable` if `match.sql` has not been run, and the screen then hides the panel |
 | `POST /api/triage` | Driver | Read-only. Validates the picked warning lights, symptoms and description and returns the **demo** triage result (cause, confidence, safety call, service). No AI provider, no photos, no database writes |
-| `POST /api/dispatch/cancel` | Driver | Cancels the request. Before diagnosis: full refund. After diagnosis: no refund, the mechanic is paid the $80 |
+| `POST /api/dispatch/cancel` | Driver | Cancels the request. Before the mechanic arrives: full refund. After arrival: no refund, the mechanic is paid their 90% |
 
 Shared server code: `app/lib/stripe.ts` (Stripe client, site URL),
 `app/lib/supabase/admin.ts` (service-role client), `app/lib/fees.ts` (the $35 / $80 / $115
@@ -103,16 +104,19 @@ Money rules:
   request body, and `/api/stripe/webhook` must stay public in
   `lib/supabase/middleware.ts` (Stripe has no sign-in cookie).
 - **Request status flow:** `awaiting_payment` -> `open` (paid, visible to
-  mechanics) -> `accepted` -> `diagnosed` (mechanic recorded a diagnosis) ->
-  `completed`; or `cancelled`. Not `searching` or `matched`: "matched" means a
+  mechanics) -> `accepted` -> `arrived` (mechanic tapped "I've arrived") ->
+  `diagnosed` (diagnosis jobs only) -> `completed`; or `cancelled`. Not `searching` or `matched`: "matched" means a
   mechanic accepted.
-- **Price: $115.00 = $35.00 NemaGo Platform Dispatch Fee + $80.00 Conditional
-  Diagnostic Fee** (from the Discovery Report; constants in `lib/fees.ts`). Cancel
-  before `diagnosed` -> full refund. At `diagnosed`, whether the mechanic marks it
-  complete or the driver cancels: $35 stays in NemaGo's balance and $80 is
-  transferred to the mechanic, no refund. Completion is only allowed from
-  `diagnosed`. These rules live in the `admin_begin_cancel` and
-  `admin_begin_completion` functions in `app/supabase/pricing-diagnostic.sql`.
+- **Prices** (constants in `lib/fees.ts`, calculation in `lib/pricing.ts`): a diagnosis
+  booking is $115.00 = $35.00 NemaGo Dispatch Fee + $80.00 Diagnosis Fee; a fixed-price
+  booking is tiered labor + NemaGo-sourced parts + the $35.00 dispatch fee. Cancel before the
+  mechanic taps "I've arrived" -> full refund (including the $35). After arrival there is no
+  refund: the $35 and the parts stay with NemaGo and the mechanic is paid 90% of the labor /
+  diagnosis bucket (diagnosis jobs: $72 on arrival; fixed-price jobs: on completion, or on a
+  cancel after arrival). Completion is only allowed from `diagnosed` (diagnosis jobs) or
+  `arrived` (fixed-price jobs). These rules live in `admin_begin_arrival`,
+  `admin_begin_cancel` and `admin_begin_completion` in `app/supabase/booking.sql`
+  (which supersedes `pricing-diagnostic.sql`'s versions).
 - **Separate charges and transfers:** the driver pays NemaGo's platform account;
   on completion NemaGo transfers the mechanic's share. NemaGo's fee stays in the
   platform balance. Use idempotency keys on every Stripe write so retries never
@@ -129,6 +133,29 @@ Money rules:
   this flow.
 - The US country code is a labeled placeholder (open decision in the PRD). The
   $35 / $80 split is decided; open items are listed in the PRD.
+
+### Two-path booking, vehicle tiers and parts (update after F5)
+
+- **Run `app/supabase/booking.sql` before deploying this update.** Without it the booking
+  screens fail.
+- **Pages:** `/driver/request` (chooser "How can we help today?" + live status),
+  `/driver/book/service` (I Know What I Need) and `/driver/book/diagnosis` (Something Is Wrong).
+  Code: `lib/vehicleTier.ts` (tier from make/model, placeholder lists), `lib/services.ts`
+  (10 services; `partsShare` is a PLACEHOLDER split of price into parts and labor),
+  `lib/pricing.ts` (`priceBooking`, `tieredPriceDollars` = base x tier rounded to the nearest
+  $5, `MECHANIC_PERCENT` = 90), `lib/booking.ts` (validation, shared by browser and server),
+  `components/booking/*`.
+- **Prices are always recomputed on the server** from the service id and the vehicle. The
+  browser's amounts are ignored.
+- **Money buckets** live in `job_transactions`: `dispatch_fee` ($35, 100% NemaGo),
+  `parts_total` (100% NemaGo), `labor_and_diag_total` (90% mechanic, 10% NemaGo). The old
+  `platform_fee_cents` column still equals price minus the mechanic's payout, so
+  `lib/payout.ts` is unchanged.
+- **Parts policy:** NemaGo buys and warrants all parts. No customer-supplied parts, no mechanic
+  reimbursement. The policy text (`PartsTrustBadge`) must appear on every checkout screen.
+  Store and order number in `parts_orders` are entered by staff via SQL until a real store
+  integration exists. Never invent them.
+- **Refund cut-off** is the "I've arrived" tap (`/api/dispatch/arrive`), not the diagnosis note.
 
 ### Smart Dispatch Match (PRD F3)
 
@@ -177,8 +204,10 @@ Money rules:
 One stylesheet, `app/app/globals.css`, for every screen. Calm, high-trust, readable
 in bright outdoor glare: deep slate navy `#0F172A` (header, headings, text),
 soft off-white cards `#F8FAFC` with 2px borders, emerald badges for "Verified" and
-"Price locked", amber `#F97316` for the main action. **Action buttons use navy text
-on amber** (white on that orange fails contrast in sunlight). Base text is 17px, tap
+"Price locked", sky blue `#38BDF8` for the main action. **There is no orange anywhere in the
+app** (owner's rule since the two-path booking update; the four `--action*` tokens at the top
+of the stylesheet are the only place to change the action colour). **Action buttons use navy
+text on sky blue** (about 8:1 contrast). Base text is 17px, tap
 targets are at least 54px, and colour pairs must keep WCAG AA contrast. Components rely
 on the class names in this file, so change styles in the stylesheet and rename
 classes only with the components. Stripe's payment page is Stripe's own and cannot be

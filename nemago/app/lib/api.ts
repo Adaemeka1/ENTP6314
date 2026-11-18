@@ -36,6 +36,10 @@ const SAFE_ERRORS = [
   "cannot_cancel",
   "cannot_complete",
   "cannot_diagnose",
+  "cannot_arrive",
+  "invalid_booking",
+  "vin_required",
+  "vehicle_id_required",
   "not_paid",
   "payouts_not_set_up",
 ];

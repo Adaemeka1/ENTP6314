@@ -1,27 +1,60 @@
 import { getSignedInUser, json, notConfigured, readJson, safeError } from "@/lib/api";
-import {
-  DIAGNOSTIC_FEE_CENTS,
-  DIAGNOSTIC_FEE_LABEL,
-  DISPATCH_FEE_CENTS,
-  DISPATCH_FEE_LABEL,
-  SERVICE_PRICE_CENTS,
-  platformFeeCents,
-} from "@/lib/fees";
+import { validateBookingRequest } from "@/lib/booking";
+import { DIAGNOSTIC_FEE_LABEL, DISPATCH_FEE_LABEL } from "@/lib/fees";
+import { priceBooking, type Priced } from "@/lib/pricing";
+import { shortServiceName } from "@/lib/services";
 import { getStripe, siteUrl } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-// Checks a piece of text from the browser, and trims it.
-function text(value: unknown, min: number, max: number) {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length >= min && trimmed.length <= max ? trimmed : null;
+// What the driver sees on Stripe's payment page: one line per money bucket.
+function lineItems(priced: Priced) {
+  const line = (name: string, description: string, cents: number) => ({
+    quantity: 1,
+    price_data: {
+      currency: "usd",
+      unit_amount: cents,
+      product_data: { name, description },
+    },
+  });
+
+  const items = [];
+  if (priced.type === "fixed_price" && priced.service && priced.tier) {
+    items.push(
+      line(
+        "Tiered Labor",
+        `${shortServiceName(priced.service)} · mobile mechanic labor, ${priced.tier.label} pricing`,
+        priced.laborAndDiagCents,
+      ),
+    );
+    if (priced.partsCents > 0) {
+      items.push(
+        line(
+          "NemaGo Sourced Parts",
+          "Commercial-grade OEM/equivalent parts, sourced and warranty-backed by NemaGo",
+          priced.partsCents,
+        ),
+      );
+    }
+  } else {
+    items.push(
+      line(
+        DIAGNOSTIC_FEE_LABEL,
+        "On-site diagnosis by a mobile mechanic. Credited toward the repair if you approve the repair quote.",
+        priced.laborAndDiagCents,
+      ),
+    );
+  }
+  items.push(
+    line(DISPATCH_FEE_LABEL, "Finding and dispatching a verified mobile mechanic to you", priced.dispatchFeeCents),
+  );
+  return items;
 }
 
-// "Confirm Dispatch": saves the request as unpaid, then creates a real Stripe
-// Checkout Session and returns its address. The price is chosen HERE, on the
-// server. Nothing the browser sends can change it.
+// Starts a booking (or resumes an unpaid one) and returns Stripe's payment page.
+// EVERY price is worked out HERE from the service and the vehicle. Nothing the
+// browser sends can change an amount: it is ignored.
 export async function POST(request: Request) {
   const stripe = getStripe();
   const admin = createAdminClient();
@@ -34,73 +67,71 @@ export async function POST(request: Request) {
   if (!body) return json({ error: "invalid_input" }, 400);
 
   let requestId: string;
+  let priced: Priced | null;
 
   if (typeof body.requestId === "string") {
-    // Paying for a request that was saved but not paid yet. Only the driver's own
+    // Paying for a booking that was saved but not paid yet. Only the driver's own
     // requests come back from this query.
     const { data } = await supabase
       .from("dispatch_requests")
-      .select("id, status")
+      .select("id, status, booking_type, service_id, vehicle_make, vehicle_model")
       .eq("id", body.requestId)
       .maybeSingle();
     if (!data || data.status !== "awaiting_payment") {
       return json({ error: "not_awaiting_payment" }, 409);
     }
     requestId = data.id;
+    priced =
+      data.booking_type === "fixed_price"
+        ? priceBooking({
+            type: "fixed_price",
+            serviceId: data.service_id ?? "",
+            vehicle: { make: data.vehicle_make ?? "", model: data.vehicle_model ?? "" },
+          })
+        : priceBooking({ type: "diagnosis" });
   } else {
-    const problem = text(body.problem, 3, 500);
-    const area = text(body.area, 2, 80);
-    const address = text(body.address, 3, 200);
-    if (!problem || !area || !address) return json({ error: "invalid_input" }, 400);
+    const check = validateBookingRequest(body);
+    if (!check.ok) return json({ error: "invalid_input", message: check.error }, 400);
+    const v = check.value;
 
-    const { data, error } = await supabase.rpc("request_dispatch", {
-      p_problem: problem,
-      p_area: area,
-      p_address: address,
+    const { data, error } = await supabase.rpc("request_booking", {
+      p_booking_type: v.type,
+      p_service_id: v.serviceId,
+      p_problem: v.problem,
+      p_area: v.area,
+      p_address: v.address,
+      p_year: v.year,
+      p_make: v.make,
+      p_model: v.model,
+      p_vin: v.vin,
+      p_plate: v.plate,
     });
     if (error) return json({ error: safeError(error.message) }, 409);
     requestId = data as string;
+
+    priced =
+      v.type === "fixed_price"
+        ? priceBooking({
+            type: "fixed_price",
+            serviceId: v.serviceId as string,
+            vehicle: { make: v.make, model: v.model },
+          })
+        : priceBooking({ type: "diagnosis" });
   }
 
-  const price = SERVICE_PRICE_CENTS;
-  const fee = platformFeeCents();
+  if (!priced) return json({ error: "invalid_input" }, 400);
   const site = siteUrl(request);
 
   let session;
   try {
     session = await stripe.checkout.sessions.create({
       mode: "payment",
-      // Two lines, so the driver sees exactly what the $115.00 is made of.
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: DISPATCH_FEE_CENTS,
-            product_data: {
-              name: DISPATCH_FEE_LABEL,
-              description: "Finding and dispatching a verified mobile mechanic to you",
-            },
-          },
-        },
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: DIAGNOSTIC_FEE_CENTS,
-            product_data: {
-              name: DIAGNOSTIC_FEE_LABEL,
-              description:
-                "Covers the mechanic's on-site diagnostic labor, or is credited toward the repair. Refunded in full if you cancel before a diagnosis is recorded.",
-            },
-          },
-        },
-      ],
+      line_items: lineItems(priced),
       client_reference_id: requestId,
       customer_email: user.email ?? undefined,
-      metadata: { dispatch_request_id: requestId },
+      metadata: { dispatch_request_id: requestId, booking_type: priced.type },
       payment_intent_data: {
-        metadata: { dispatch_request_id: requestId },
+        metadata: { dispatch_request_id: requestId, booking_type: priced.type },
         transfer_group: "dispatch_" + requestId,
       },
       success_url: site + "/driver/request?checkout=success",
@@ -113,12 +144,15 @@ export async function POST(request: Request) {
     return json({ error: "stripe_failed" }, 502);
   }
 
-  const { error: saveError } = await admin.rpc("admin_set_checkout", {
+  // The database records the three buckets and works out the 90/10 split.
+  const { error: saveError } = await admin.rpc("admin_set_checkout_v2", {
     p_request_id: requestId,
     p_driver_id: user.id,
     p_session_id: session.id,
-    p_price_cents: price,
-    p_fee_cents: fee,
+    p_dispatch_fee_cents: priced.dispatchFeeCents,
+    p_parts_total_cents: priced.partsCents,
+    p_labor_and_diag_cents: priced.laborAndDiagCents,
+    p_tier: priced.tier?.tier ?? null,
   });
   if (saveError) {
     console.error("checkout: could not save the session", saveError.message);

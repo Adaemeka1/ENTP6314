@@ -84,8 +84,8 @@ export function TriageResultCard({
         Book Certified Mechanic · {formatCents(SERVICE_PRICE_CENTS)}
       </button>
       <p className="muted small triage-price-note">
-        {formatCents(DISPATCH_FEE_CENTS)} dispatch fee + {formatCents(DIAGNOSTIC_FEE_CENTS)} diagnostic fee,
-        locked before you pay. Full refund if you cancel before the mechanic records a diagnosis.
+        {formatCents(DIAGNOSTIC_FEE_CENTS)} diagnosis fee + {formatCents(DISPATCH_FEE_CENTS)} dispatch fee, locked
+        before you pay. Full refund if you cancel before the mechanic arrives.
       </p>
     </div>
   );

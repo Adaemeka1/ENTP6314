@@ -42,7 +42,7 @@ This copies them, in the right order, to your clipboard (run it from this folder
 then paste into **SQL Editor -> New query** and click **Run**:
 
 ```bash
-(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql pricing-diagnostic.sql match.sql vehicles.sql; echo "notify pgrst, 'reload schema';") | pbcopy
+(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql pricing-diagnostic.sql match.sql vehicles.sql booking.sql; echo "notify pgrst, 'reload schema';") | pbcopy
 ```
 
 `retire-old-dispatch.sql` removes an older NemaGo dispatch design if one is in the
@@ -70,6 +70,12 @@ the same thing one file at a time.
    Then run `supabase/vehicles.sql`: it creates the `vehicles` table (year, make, model,
    mileage) with Row Level Security so each driver sees only their own cars. If you skip
    it, the "My vehicles" page says vehicles aren't set up yet, and the car pickers hide.
+   Then run `supabase/booking.sql` (**required before deploying the two-path booking
+   update**): it adds fixed-price bookings, vehicle tiers, the "I've arrived" step, the
+   `job_transactions` table (the dispatch fee / parts / labor split) and the `parts_orders`
+   table (the "Parts Ready for Pickup" card). Run it after `vehicles.sql`. It is safe to
+   run again. NemaGo staff mark a parts order ready with SQL, for example:
+   `update parts_orders set status='ready', store_name='NAPA Auto Parts', store_address='100 Parts Rd', order_number='NG-1001' where request_id='<the request id>';`
 6. Open **Project Settings -> API** and copy the **Project URL** and the
    **anon public** key.
 7. In this folder, copy `.env.example` to `.env.local` and paste them in.
