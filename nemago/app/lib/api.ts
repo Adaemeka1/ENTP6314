@@ -42,6 +42,11 @@ const SAFE_ERRORS = [
   "vehicle_id_required",
   "not_paid",
   "payouts_not_set_up",
+  "not_found",
+  "already_reviewed",
+  "not_completed",
+  "invalid_review",
+  "no_pending_tip",
 ];
 
 export function safeError(message: string | undefined) {

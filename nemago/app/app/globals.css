@@ -1645,3 +1645,71 @@ input[readonly] {
 .track-map .leaflet-tile-pane {
   filter: grayscale(0.75) contrast(0.92) brightness(1.06);
 }
+
+
+/* ---- Rate & Tip Your Mechanic (after a completed job) ---- */
+
+.rate-card {
+  margin-top: 16px;
+}
+
+.stars {
+  display: flex;
+  gap: 6px;
+  margin: 14px 0 4px;
+}
+
+.star {
+  flex: 1;
+  min-height: 54px;
+  font: inherit;
+  font-size: 2rem;
+  line-height: 1;
+  border-radius: 14px;
+  border: 2px solid var(--border-strong);
+  background: var(--white);
+  color: var(--border-strong);
+  cursor: pointer;
+}
+
+.star:hover {
+  border-color: var(--navy);
+}
+
+.star-on,
+.star-on:hover {
+  background: var(--action);
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
+.rate-label {
+  margin: 18px 0 8px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.rate-comment,
+.rate-custom {
+  margin-top: 16px;
+}
+
+.rate-note {
+  margin: 14px 0 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--emerald-soft);
+  color: var(--emerald-ink);
+  font-size: 0.95rem;
+}
+
+.rate-stars-done {
+  margin: 4px 0 8px;
+  font-size: 1.6rem;
+  letter-spacing: 2px;
+  color: var(--navy);
+}
+
+.rate-stars-off {
+  color: var(--border);
+}

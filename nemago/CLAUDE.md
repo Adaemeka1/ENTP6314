@@ -89,6 +89,8 @@ Backend API routes (all in `app/app/api/`, all server-only):
 | `POST /api/dispatch/complete` | Accepting mechanic | Completes the job (diagnosis jobs: after the diagnosis note; fixed-price jobs: after arriving) and pays 90% of the labor via a Stripe transfer. Also retries a failed payout |
 | `POST /api/match` | Driver (own request only) | Read-only. Scores and ranks eligible mechanics (waiting: top 3, no names; accepted: that mechanic's breakdown). Returns 503 `match_unavailable` if `match.sql` has not been run, and the screen then hides the panel |
 | `POST /api/triage` | Driver | Read-only. Validates the picked warning lights, symptoms and description and returns the **demo** triage result (cause, confidence, safety call, service). No AI provider, no photos, no database writes |
+| `POST /api/review` | Driver | Saves the star rating, tags and comment for their completed job, then opens Stripe Checkout for the chosen tip |
+| `POST /api/tip` | Driver | Opens Stripe Checkout again for a tip they chose but didn't pay. 100% goes to the mechanic when the webhook confirms it |
 | `POST /api/dispatch/cancel` | Driver | Cancels the request. Before the mechanic arrives: full refund. After arrival: no refund, the mechanic is paid their 90% |
 
 Shared server code: `app/lib/stripe.ts` (Stripe client, site URL),
@@ -177,6 +179,31 @@ Money rules:
   paid provider before real traffic.
 - `/api/match` now also answers for the `arrived` status (read-only) so the card keeps its ASE badge
   and rating after arrival.
+
+### Rate & Tip Your Mechanic (driver, after a completed job)
+
+- **Run `app/supabase/reviews.sql` before deploying this.** If it hasn't been run, the card
+  quietly hides itself (it reads `job_reviews` on its own, so the rest of the driver screen
+  keeps working).
+- **Screen:** `components/RateTipCard.tsx`, shown by `DriverDispatch` when the driver's last
+  request is `completed`. 1 to 5 stars, quick tags (On Time, Clear Photo Proof, Clean Work,
+  Great Communication), optional comment (500 characters), tip $0 / $5 / $10 / $15 / Custom
+  ($1 to $200) and the note "100% of your tip goes directly to your mechanic."
+- **Database:** `job_reviews` (one per job, saved only by `submit_review()`; the driver and the
+  assigned mechanic can read it; nobody can edit it) and the private `tip_payments` (no browser
+  access, like `dispatch_payments`). Tip rules are in `lib/review.ts` (shared) and `lib/tip.ts` (server).
+- **Routes:** `POST /api/review` saves the review, then opens Stripe Checkout for the chosen tip.
+  `POST /api/tip` finishes a chosen-but-unpaid tip. The webhook sends `kind: "tip"` sessions to
+  `handleTipPaid`, never to the job-payment code.
+- **Tip money rules:** the amount comes from the saved review, never the browser. Only Stripe's signed
+  webhook marks a tip paid, then 100% is transferred to the mechanic with `source_transaction` and an
+  idempotency key (no application fee). Tips use their own transfer group `tip_<id>` so they can never be
+  confused with the job payout (`dispatch_<id>`). A duplicate or wrong-amount tip payment is refunded.
+  NemaGo still pays Stripe's card-processing fee on the tip charge; the mechanic gets the whole tip.
+- A review is saved once and can't be changed. If the driver abandons the tip payment, the review
+  stays and the card offers "Pay tip" again.
+- Not built yet: showing reviews or tips on the mechanic's screen (the mechanic can read their
+  reviews in the database already).
 
 ### Smart Dispatch Match (PRD F3)
 

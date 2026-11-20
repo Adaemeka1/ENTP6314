@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { json, notConfigured } from "@/lib/api";
 import { getStripe } from "@/lib/stripe";
+import { handleTipPaid } from "@/lib/tip";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -30,7 +31,12 @@ export async function POST(request: Request) {
 
   try {
     if (event.type === "checkout.session.completed") {
-      await handlePaid(stripe, admin, event.data.object);
+      // Tips (Rating & Tip) are paid through their own checkout and are handled separately.
+      if (event.data.object.metadata?.kind === "tip") {
+        await handleTipPaid(stripe, admin, event.data.object);
+      } else {
+        await handlePaid(stripe, admin, event.data.object);
+      }
     } else if (event.type === "checkout.session.expired") {
       const { error } = await admin.rpc("admin_expire_checkout", {
         p_session_id: event.data.object.id,

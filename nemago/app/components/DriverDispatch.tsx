@@ -6,6 +6,7 @@ import { CheckoutSummary, linesFromTransaction } from "@/components/booking/Chec
 import { ReceiptDetails, bookingTitle } from "@/components/booking/ReceiptDetails";
 import { LiveStatus } from "@/components/LiveStatus";
 import { MatchPanel } from "@/components/MatchPanel";
+import { RateTipCard } from "@/components/RateTipCard";
 import { JobTracker } from "@/components/tracking/JobTracker";
 import {
   WAIT_SECONDS,
@@ -128,6 +129,9 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
           )}
           {last?.status === "cancelled" && last.refund_status === "none" && !last.arrived_at && !last.diagnosis && (
             <div className="notice notice-success">Your last request was cancelled.</div>
+          )}
+          {last?.status === "completed" && (
+            <RateTipCard requestId={last.id} mechanicName={last.mechanic_first_name} checkout={checkout} />
           )}
           <BookingChooser />
         </>
