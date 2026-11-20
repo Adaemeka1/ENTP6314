@@ -7,6 +7,7 @@ import { ReceiptDetails, bookingTitle } from "@/components/booking/ReceiptDetail
 import { LiveStatus } from "@/components/LiveStatus";
 import { MatchPanel } from "@/components/MatchPanel";
 import { RateTipCard } from "@/components/RateTipCard";
+import { RepairOutcomeNote, RepairQuoteGate, RepairScheduled } from "@/components/repair/RepairQuoteGate";
 import { JobTracker } from "@/components/tracking/JobTracker";
 import {
   WAIT_SECONDS,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/dispatch";
 import { formatCents } from "@/lib/fees";
 import { useDispatchFeed, useNow } from "@/lib/useDispatchFeed";
+import { useRepairQuote } from "@/lib/useRepairQuote";
 
 // The driver's screen: choose how to book, then watch the job update live.
 // (Booking and paying happen on the two booking screens; this shows everything after.)
@@ -39,6 +41,11 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
       r.status === "diagnosed",
   );
   const last = active ? undefined : requests[0];
+
+  // The repair quote (Secondary Approval Gate): while the mechanic has diagnosed the car,
+  // and for the note about how a finished job ended.
+  const quoteFor = active?.status === "diagnosed" ? active.id : last?.status === "completed" ? last.id : null;
+  const { quote, reload: reloadQuote } = useRepairQuote(quoteFor);
 
   // Sends the driver back to Stripe's secure page for an unpaid booking.
   async function continuePayment(id: string) {
@@ -130,6 +137,7 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
           {last?.status === "cancelled" && last.refund_status === "none" && !last.arrived_at && !last.diagnosis && (
             <div className="notice notice-success">Your last request was cancelled.</div>
           )}
+          {last?.status === "completed" && quote && <RepairOutcomeNote quote={quote} />}
           {last?.status === "completed" && (
             <RateTipCard requestId={last.id} mechanicName={last.mechanic_first_name} checkout={checkout} />
           )}
@@ -251,6 +259,17 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             vehicle={vehicle}
           />
           {active.diagnosis && <p className="diagnosis-text">{active.diagnosis}</p>}
+          {quote?.status === "sent" && active.status === "diagnosed" && (
+            <RepairQuoteGate
+              quote={quote}
+              mechanicName={active.mechanic_first_name}
+              checkout={checkout}
+              onChanged={async () => {
+                await Promise.all([reloadQuote(), reload()]);
+              }}
+            />
+          )}
+          {quote?.status === "paid" && <RepairScheduled quote={quote} mechanicName={active.mechanic_first_name} />}
           <p className="small">
             <strong>Booking:</strong> {bookingTitle(active)}
             {vehicle && (
@@ -267,9 +286,11 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             Your mechanic is on site, so this payment is no longer refundable, whether the job is completed or
             cancelled.
           </p>
-          <button type="button" className="btn btn-google" onClick={() => cancel(active.id, true)} disabled={busy}>
-            {busy ? "Cancelling…" : "Cancel (no refund)"}
-          </button>
+          {quote?.status !== "paid" && (
+            <button type="button" className="btn btn-google" onClick={() => cancel(active.id, true)} disabled={busy}>
+              {busy ? "Cancelling…" : "Cancel (no refund)"}
+            </button>
+          )}
         </div>
       )}
     </div>

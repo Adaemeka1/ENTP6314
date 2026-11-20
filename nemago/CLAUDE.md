@@ -89,6 +89,8 @@ Backend API routes (all in `app/app/api/`, all server-only):
 | `POST /api/dispatch/complete` | Accepting mechanic | Completes the job (diagnosis jobs: after the diagnosis note; fixed-price jobs: after arriving) and pays 90% of the labor via a Stripe transfer. Also retries a failed payout |
 | `POST /api/match` | Driver (own request only) | Read-only. Scores and ranks eligible mechanics (waiting: top 3, no names; accepted: that mechanic's breakdown). Returns 503 `match_unavailable` if `match.sql` has not been run, and the screen then hides the panel |
 | `POST /api/triage` | Driver | Read-only. Validates the picked warning lights, symptoms and description and returns the **demo** triage result (cause, confidence, safety call, service). No AI provider, no photos, no database writes |
+| `POST /api/repair/approve` | Driver | "Approve & Pay Balance": opens Stripe Checkout for the saved repair quote's balance (parts + labor - $80 credit). The webhook schedules the repair |
+| `POST /api/repair/complete` | Accepting mechanic | "Mark repair complete": closes the job and pays 90% of (labor - $80) by Stripe transfer. Safe to repeat (never pays twice) |
 | `POST /api/review` | Driver | Saves the star rating, tags and comment for their completed job, then opens Stripe Checkout for the chosen tip |
 | `POST /api/tip` | Driver | Opens Stripe Checkout again for a tip they chose but didn't pay. 100% goes to the mechanic when the webhook confirms it |
 | `POST /api/dispatch/cancel` | Driver | Cancels the request. Before the mechanic arrives: full refund. After arrival: no refund, the mechanic is paid their 90% |
@@ -179,6 +181,37 @@ Money rules:
   paid provider before real traffic.
 - `/api/match` now also answers for the `arrived` status (read-only) so the card keeps its ASE badge
   and rating after arrival.
+
+### Secondary Approval Gate: repair quote after a diagnosis (Path B)
+
+- **Run `app/supabase/repair.sql` before deploying this.** If it hasn't been run, the quote form and
+  the driver's approval card quietly hide (they read `repair_quotes` on their own, so nothing else breaks).
+- **Flow:** diagnosis job -> mechanic records the diagnosis (`diagnosed`) -> mechanic sends ONE
+  "Send Repair Quote" (issue summary, repair description, demo photo, parts total, labor total, repair
+  date and a 2-hour time window) -> driver sees the "Secondary Approval Gate" card -> **Approve & Pay
+  Balance** (Stripe Checkout, test mode) schedules the repair, or **Decline Repair** closes the job
+  (`completed`; the mechanic keeps the 90% of the $80 paid on arrival; the $80 is not refunded) ->
+  after a paid quote the mechanic taps **Mark repair complete** and is paid.
+- **Math** (`lib/repair.ts`, mirrored in `repair.sql`): net balance due = parts total + labor total -
+  $80.00 diagnostic credit. Labor must be at least $80 and the balance due at least $1. The first $80
+  of labor was already split 90/10 as the diagnosis fee, so only (labor - $80) is split now.
+- **Buckets for the balance:** `parts_total` 100% NemaGo; `labor_total - $80` 90% mechanic (Stripe
+  Connect transfer when the repair is marked complete) / 10% NemaGo; there is no dispatch fee on the repair.
+  Parts follow the parts policy (NemaGo buys them, the manufacturer's warranty; the trust badge is on the
+  approval card and on Stripe's page). A paid quote with parts creates a `parts_orders` row.
+- **Code:** `components/repair/*` (`RepairQuoteForm`, `RepairQuoteGate` + `RepairScheduled` +
+  `RepairOutcomeNote`, `MechanicRepair`, `DemoPhoto`, `RepairBreakdown`), `lib/repair.ts` (pure),
+  `lib/repairPay.ts` (server money), `lib/useRepairQuote.ts`, `app/api/repair/{approve,complete}`.
+  The webhook sends `kind: "repair"` sessions to `handleRepairPaid`. The quote is written with RPCs
+  (`submit_repair_quote`, `decline_repair_quote`); the money functions are `admin_*repair*`.
+- **Money safety:** the charge is read from the saved quote, never the browser. Only Stripe's signed
+  webhook marks it paid; a payment for a withdrawn/declined quote, a duplicate, or a wrong amount is
+  refunded. The repair transfer uses its own group `repair_<id>` and an idempotency key. A trigger on
+  `dispatch_requests` stops a paid repair from being cancelled or closed the old way, and withdraws an
+  unanswered quote if the job is closed another way.
+- **Photo proof is a DEMO picker** (5 labelled drawings): real photo upload needs a consent and storage
+  flow first (see Data handling). A quote can't be edited after it's sent.
+- **Demo rating:** `demoSignals()` in `lib/match.ts` now shows every demo mechanic as 5.0 stars.
 
 ### Rate & Tip Your Mechanic (driver, after a completed job)
 

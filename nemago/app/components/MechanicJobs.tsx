@@ -6,6 +6,7 @@ import { PartsPickupCard } from "@/components/booking/PartsPickupCard";
 import { bookingTitle } from "@/components/booking/ReceiptDetails";
 import { LiveStatus } from "@/components/LiveStatus";
 import { MatchBreakdown } from "@/components/MatchBreakdown";
+import { DiagnosedJobCard, RepairPayoutNote } from "@/components/repair/MechanicRepair";
 import { createClient } from "@/lib/supabase/client";
 import {
   ETA_CHOICES,
@@ -351,25 +352,15 @@ export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; 
         }
         if (r.status === "diagnosed") {
           return (
-            <div key={r.id} className="card job-matched">
-              <span className="badge badge-success">Diagnosis recorded</span>
-              <p className="diagnosis-text">{r.diagnosis}</p>
-              <p className="small">
-                <strong>Go to:</strong> {contactOf(r)?.address}
-              </p>
-              <p className="muted small">
-                Your {earnings(r)} {r.payout_status === "paid_out" ? "was already paid when you arrived." : "is paid as soon as your arrival payout goes through."}{" "}
-                Mark the visit complete once you are done.
-              </p>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => complete(r.id)}
-                disabled={busyId !== ""}
-              >
-                {busyId === r.id ? "Completing…" : "Mark job complete"}
-              </button>
-            </div>
+            <DiagnosedJobCard
+              key={r.id}
+              request={r}
+              earningsText={earnings(r)}
+              busy={busyId !== ""}
+              onCompleteJob={complete}
+              onReload={reload}
+              onMessage={setMessage}
+            />
           );
         }
         if (r.status === "completed" || (r.status === "cancelled" && r.arrived_at)) {
@@ -407,6 +398,7 @@ export function MechanicJobs({ payoutsEnabled, me }: { payoutsEnabled: boolean; 
                   </button>
                 </>
               )}
+              {!cancelled && <RepairPayoutNote requestId={r.id} onReload={reload} onMessage={setMessage} />}
             </div>
           );
         }

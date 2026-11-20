@@ -151,7 +151,7 @@ export function demoSignals(mechanicId: string, requestId: string, issue: IssueC
     distanceMiles: Math.round(etaMinutes * 5) / 10, // about 30 mph
     shift: shiftRoll < 0.8 ? "on_shift" : shiftRoll < 0.95 ? "ending_soon" : "on_break",
     parts: partsRoll < 0.55 ? "ready" : partsRoll < 0.85 ? "can_source" : "none",
-    rating: Math.round((4.4 + unit(mechanicId + "|rating") * 0.6) * 10) / 10, // 4.4 to 5.0
+    rating: 5.0, // DEMO: every demo mechanic shows 5.0 stars until real ratings exist
     acceptanceRate: Math.round((0.72 + unit(mechanicId + "|accept") * 0.26) * 100) / 100, // 72% to 98%
   };
 }

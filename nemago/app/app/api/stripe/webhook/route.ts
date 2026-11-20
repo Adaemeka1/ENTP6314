@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { json, notConfigured } from "@/lib/api";
 import { getStripe } from "@/lib/stripe";
+import { handleRepairPaid } from "@/lib/repairPay";
 import { handleTipPaid } from "@/lib/tip";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -34,6 +35,9 @@ export async function POST(request: Request) {
       // Tips (Rating & Tip) are paid through their own checkout and are handled separately.
       if (event.data.object.metadata?.kind === "tip") {
         await handleTipPaid(stripe, admin, event.data.object);
+      } else if (event.data.object.metadata?.kind === "repair") {
+        // Repair quote balances (Secondary Approval Gate) are handled separately too.
+        await handleRepairPaid(stripe, admin, event.data.object);
       } else {
         await handlePaid(stripe, admin, event.data.object);
       }

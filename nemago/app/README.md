@@ -42,7 +42,7 @@ This copies them, in the right order, to your clipboard (run it from this folder
 then paste into **SQL Editor -> New query** and click **Run**:
 
 ```bash
-(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql pricing-diagnostic.sql match.sql vehicles.sql booking.sql reviews.sql; echo "notify pgrst, 'reload schema';") | pbcopy
+(cd supabase && cat retire-old-dispatch.sql schema.sql drivers-and-mechanics.sql dispatch.sql payments.sql pricing-diagnostic.sql match.sql vehicles.sql booking.sql reviews.sql repair.sql; echo "notify pgrst, 'reload schema';") | pbcopy
 ```
 
 `retire-old-dispatch.sql` removes an older NemaGo dispatch design if one is in the
@@ -81,6 +81,11 @@ the same thing one file at a time.
    `tip_payments` table, and the server-only functions that move a paid tip 100% to the
    mechanic. Run it after `booking.sql`. It is safe to run again. If you skip it, the
    Rating & Tip card simply doesn't show.
+   Then run `supabase/repair.sql` (**required before deploying the repair quote screens**):
+   it creates `repair_quotes` (the mechanic's post-diagnosis quote), the private
+   `repair_payments` table, and the server-only functions that charge the balance and pay
+   the mechanic. Run it after `reviews.sql`. It is safe to run again. If you skip it, the
+   "Send Repair Quote" form and the driver's approval card simply don't show.
 6. Open **Project Settings -> API** and copy the **Project URL** and the
    **anon public** key.
 7. In this folder, copy `.env.example` to `.env.local` and paste them in.

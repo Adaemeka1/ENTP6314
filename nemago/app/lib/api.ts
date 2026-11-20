@@ -47,6 +47,11 @@ const SAFE_ERRORS = [
   "not_completed",
   "invalid_review",
   "no_pending_tip",
+  "cannot_quote",
+  "quote_exists",
+  "invalid_quote",
+  "cannot_decline",
+  "cannot_approve",
 ];
 
 export function safeError(message: string | undefined) {

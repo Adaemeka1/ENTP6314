@@ -141,6 +141,16 @@ export function friendlyError(code: unknown) {
       return "Enter your VIN or license plate.";
     case "invalid_booking":
       return "Choose a service and try again.";
+    case "cannot_quote":
+      return "A repair quote can only be sent after you record the diagnosis.";
+    case "quote_exists":
+      return "You already sent a repair quote for this job.";
+    case "invalid_quote":
+      return "Please check the quote. Labor must be at least $80.00 and the balance due at least $1.00.";
+    case "cannot_decline":
+      return "This repair quote can't be declined anymore.";
+    case "cannot_approve":
+      return "This repair quote can't be approved right now.";
     case "invalid_input":
       return "Please check your answers and try again.";
     case "cannot_complete":
