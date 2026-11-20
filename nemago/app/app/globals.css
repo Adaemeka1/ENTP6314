@@ -1449,3 +1449,199 @@ input[readonly] {
   background: var(--action-soft);
   color: var(--action-ink);
 }
+
+
+/* ---- Live job tracking (street map, ETA, mechanic card) ---- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.tracker {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.tracker-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--navy);
+  color: var(--white);
+}
+
+.tracker-label {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.tracker-steps {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.tracker-steps li {
+  width: 34px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--navy-soft);
+  border: 1px solid #475569;
+  transition: background 0.3s ease;
+}
+
+.tracker-steps li.on {
+  background: var(--action);
+  border-color: var(--action);
+}
+
+.tracker-eta {
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--action);
+  color: var(--navy);
+  font-size: 1.15rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.tracker-eta-done {
+  background: var(--emerald-soft);
+  color: var(--emerald-ink);
+}
+
+/* The map sits in its own layer so Leaflet's high z-index never covers the header. */
+.track-map {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  height: 300px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.track-icon {
+  background: transparent;
+  border: 0;
+}
+
+.track-van {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--navy);
+  border: 3px solid var(--white);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.45);
+}
+
+.track-pin {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--action);
+  border: 3px solid var(--navy);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+}
+
+.track-pin svg {
+  transform: rotate(45deg);
+}
+
+.mech-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--white);
+  border: 2px solid var(--border);
+}
+
+.mech-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mech-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.mech-who {
+  min-width: 0;
+}
+
+.mech-name {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.mech-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 2px 0 0;
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+}
+
+.mech-rating {
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.mech-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mech-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 400px) {
+  .track-map {
+    height: 260px;
+  }
+}
+
+/* Calm the busy OpenStreetMap colours so the map sits inside the NemaGo palette. */
+.track-map .leaflet-tile-pane {
+  filter: grayscale(0.75) contrast(0.92) brightness(1.06);
+}

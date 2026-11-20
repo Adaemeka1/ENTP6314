@@ -6,6 +6,7 @@ import { CheckoutSummary, linesFromTransaction } from "@/components/booking/Chec
 import { ReceiptDetails, bookingTitle } from "@/components/booking/ReceiptDetails";
 import { LiveStatus } from "@/components/LiveStatus";
 import { MatchPanel } from "@/components/MatchPanel";
+import { JobTracker } from "@/components/tracking/JobTracker";
 import {
   WAIT_SECONDS,
   contactOf,
@@ -196,9 +197,15 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
         <div className="card job-matched">
           <span className="badge badge-success">You&rsquo;re matched!</span>
           <h2 className="pay-title">{active.mechanic_first_name ?? "A mechanic"} is on the way</h2>
-          <p className="muted">
-            Estimated arrival: about <strong>{active.eta_minutes} minutes</strong> from when they accepted.
-          </p>
+          <JobTracker
+            requestId={active.id}
+            status={active.status}
+            acceptedAt={active.accepted_at}
+            fallbackIso={active.opened_at ?? active.created_at}
+            etaMinutes={active.eta_minutes}
+            mechanicName={active.mechanic_first_name}
+            vehicle={vehicle}
+          />
           <p className="small">
             <strong>Booking:</strong> {bookingTitle(active)}
             {vehicle && (
@@ -230,6 +237,15 @@ export function DriverDispatch({ checkout }: { checkout?: string }) {
             {active.mechanic_first_name ?? "Your mechanic"}{" "}
             {active.status === "diagnosed" ? "found the problem" : "is with your car"}
           </h2>
+          <JobTracker
+            requestId={active.id}
+            status={active.status}
+            acceptedAt={active.accepted_at}
+            fallbackIso={active.opened_at ?? active.created_at}
+            etaMinutes={active.eta_minutes}
+            mechanicName={active.mechanic_first_name}
+            vehicle={vehicle}
+          />
           {active.diagnosis && <p className="diagnosis-text">{active.diagnosis}</p>}
           <p className="small">
             <strong>Booking:</strong> {bookingTitle(active)}

@@ -39,7 +39,12 @@ export async function POST(request: Request) {
     .eq("id", body.requestId)
     .maybeSingle();
   if (!job || job.driver_id !== user.id) return json({ error: "not_found" }, 404);
-  if (job.status !== "open" && job.status !== "accepted" && job.status !== "diagnosed") {
+  if (
+    job.status !== "open" &&
+    job.status !== "accepted" &&
+    job.status !== "arrived" &&
+    job.status !== "diagnosed"
+  ) {
     return json({ error: "not_matchable" }, 409);
   }
 
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
     return json({ mode: "ranking", considered: candidates.length, matches: top });
   }
 
-  // Accepted or diagnosed: explain why THIS mechanic was matched.
+  // Accepted, arrived or diagnosed: explain why THIS mechanic was matched.
   const mine = candidates.find((c) => c.id === job.mechanic_id);
   if (!mine) return json({ mode: "matched", considered: candidates.length, rank: null, matches: [] });
 

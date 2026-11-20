@@ -157,6 +157,27 @@ Money rules:
   integration exists. Never invent them.
 - **Refund cut-off** is the "I've arrived" tap (`/api/dispatch/arrive`), not the diagnosis note.
 
+### Live job tracking map (driver screen)
+
+- **What:** once a mechanic accepts, the driver's job card shows a Leaflet street map, a moving
+  mechanic icon, a live ETA / status (Mechanic assigned, En route to your location, Arrived) and a
+  mechanic card (initials, ASE badge, rating, van, Message / Call). Code: `components/tracking/`
+  (`JobTracker.tsx`, `TrackingMap.tsx`), `lib/tracking.ts` (pure maths), `lib/demoRoutes.ts`
+  (three saved Dallas road routes), styles at the end of `app/globals.css`.
+- **The movement is SIMULATED.** NemaGo has no live location (and live locations must not be
+  stored), so the van is placed on a saved route from the real accept time and the mechanic's real
+  ETA. "Arrived" only shows when the mechanic taps "I've arrived". The rating and van are demo
+  values; ASE is real. The card says so on screen. Message / Call only show a "not switched on
+  yet" note: drivers never get a mechanic's phone number.
+- **Hidden demo switch:** opening the driver screen with `?demo=fast` (for example `/driver/request?demo=fast`) plays the whole
+  trip in about 15 seconds from page load. There is no button or visible sign of it; without the
+  parameter everything runs at real speed.
+- **Tiles:** OpenStreetMap's own tiles (no key). CartoDB's free tiles now return "API key
+  required". OSM's policy is for light use: switch the one `TILES` URL in `TrackingMap.tsx` to a
+  paid provider before real traffic.
+- `/api/match` now also answers for the `arrived` status (read-only) so the card keeps its ASE badge
+  and rating after arrival.
+
 ### Smart Dispatch Match (PRD F3)
 
 - **Code:** `app/lib/match.ts` (pure scoring, no imports, used in the browser and on the
