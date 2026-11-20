@@ -26,7 +26,7 @@ export function FeeTable() {
           <strong>Parts</strong>
           <br />
           <span className="muted small">
-            NemaGo buys and warranties every part. You never pay for parts or wait to be reimbursed.
+            NemaGo buys every part, backed by the manufacturer&apos;s warranty. You never pay for parts or wait to be reimbursed.
           </span>
         </span>
         <span className="fee-amount">$0.00</span>

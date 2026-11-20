@@ -255,8 +255,9 @@ The driver first chooses **How can we help today?**
 
 Both paths are paid in full, up front, before any mechanic is dispatched.
 
-**Parts.** NemaGo centrally sources, buys and warranties every part (commercial-grade
-OEM/equivalent, matched to the VIN). Customers never supply parts and mechanics never
+**Parts.** NemaGo centrally sources and buys every part (commercial-grade
+OEM/equivalent, matched to the VIN). The warranty is the manufacturer's; NemaGo does not
+warranty parts itself. Customers never supply parts and mechanics never
 buy parts or wait for reimbursement. After payment the mechanic sees a **Parts Ready for
 Pickup** card (store and order number, pre-paid by NemaGo). In this MVP staff enter the
 store and order number by hand; there is no store integration yet.

@@ -151,7 +151,7 @@ Money rules:
   `parts_total` (100% NemaGo), `labor_and_diag_total` (90% mechanic, 10% NemaGo). The old
   `platform_fee_cents` column still equals price minus the mechanic's payout, so
   `lib/payout.ts` is unchanged.
-- **Parts policy:** NemaGo buys and warrants all parts. No customer-supplied parts, no mechanic
+- **Parts policy:** NemaGo buys all parts; the warranty is the manufacturer's, NemaGo does not warranty parts itself. No customer-supplied parts, no mechanic
   reimbursement. The policy text (`PartsTrustBadge`) must appear on every checkout screen.
   Store and order number in `parts_orders` are entered by staff via SQL until a real store
   integration exists. Never invent them.

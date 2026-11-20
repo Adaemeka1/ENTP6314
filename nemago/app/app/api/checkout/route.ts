@@ -32,7 +32,7 @@ function lineItems(priced: Priced) {
       items.push(
         line(
           "NemaGo Sourced Parts",
-          "Commercial-grade OEM/equivalent parts, sourced and warranty-backed by NemaGo",
+          "All parts are sourced directly by NemaGo using commercial-grade OEM/equivalent components matched to your VIN and backed by the manufacturer's warranty.",
           priced.partsCents,
         ),
       );

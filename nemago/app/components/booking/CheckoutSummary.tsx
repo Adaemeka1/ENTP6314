@@ -17,7 +17,7 @@ export function linesFromPriced(priced: Priced): SummaryLine[] {
         label: "NemaGo Sourced Parts",
         note:
           priced.partsCents > 0
-            ? "Commercial-grade OEM/equivalent, warranty-backed"
+            ? "Commercial-grade OEM/equivalent, manufacturer's warranty"
             : "No parts needed for this service",
         cents: priced.partsCents,
       },
